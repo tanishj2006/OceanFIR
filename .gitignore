@@ -11,7 +11,8 @@ data/*.SAFE/
 *.pth
 *.onnx
 
-# ---- generated
+# ---- generated. out/ is transient (PDFs, scratch); results/ is tracked on
+# purpose — the measured numbers are evidence and belong in the repo.
 out/
 scenes/*/data.json
 !scenes/gulf20230620/data.json

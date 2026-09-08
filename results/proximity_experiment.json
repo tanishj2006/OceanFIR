@@ -1,0 +1,41 @@
+{
+ "proximity_experiment": [
+  {
+   "shape": "linear:25000",
+   "recall": 0.15,
+   "wrong": 0.15,
+   "false_acc": 0.0,
+   "median_rank": 2.0
+  },
+  {
+   "shape": "exp:8000",
+   "recall": 0.15,
+   "wrong": 0.1,
+   "false_acc": 0.0,
+   "median_rank": 2.0
+  },
+  {
+   "shape": "exp:4000",
+   "recall": 0.15,
+   "wrong": 0.05,
+   "false_acc": 0.0,
+   "median_rank": 1.5
+  },
+  {
+   "shape": "exp:2500",
+   "recall": 0.2,
+   "wrong": 0.0,
+   "false_acc": 0.0,
+   "median_rank": 2.0
+  },
+  {
+   "shape": "exp:1500",
+   "recall": 0.15,
+   "wrong": 0.0,
+   "false_acc": 0.0,
+   "median_rank": 2.0
+  }
+ ],
+ "gap_scale_m": 10000.0,
+ "offset_m": 2200.0
+}
