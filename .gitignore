@@ -1,0 +1,38 @@
+# ---- data: NEVER commit these. GitHub rejects files over 100 MB and the
+# AIS day file is 927 MB. Teammates get it with ./fetch_data.sh instead.
+data/*.csv
+data/*.zip
+data/*.nc
+data/*.tif
+data/*.SAFE/
+
+# ---- model weights: too big and they churn. Share via Drive.
+*.pt
+*.pth
+*.onnx
+
+# ---- generated
+out/
+scenes/*/data.json
+!scenes/gulf20230620/data.json
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# ---- environments
+venv/
+.venv/
+node_modules/
+web/dist/
+web/.vite/
+
+# ---- os / editor
+.DS_Store
+.env
+.vscode/
+.idea/
+
+# pipeline output at repo root — regenerated every run, do not track
+/data.json
+/mask.png
+oceanfir_backup.py

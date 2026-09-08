@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OceanFIR</title>
+<style>
+  :root{
+    --bg:#0B1116; --panel:#131C23; --panel2:#0F171D; --line:#22303A; --line2:#1A252C;
+    --ink:#DBE6EC; --ink2:#9FB3BF; --ink3:#6B8090;
+    --cyan:#35B0C9; --red:#E05A4C; --green:#4FA46B; --amber:#D99A3E;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);height:100vh;overflow:hidden;display:flex;flex-direction:column}
+
+  header{height:54px;flex:none;background:var(--panel);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:18px;padding:0 18px}
+  .logo{font-size:19px;font-weight:800;letter-spacing:1.2px}
+  .logo span{color:var(--cyan)}
+  .tag{font-size:11px;color:var(--ink3);letter-spacing:.5px;border-left:1px solid var(--line);padding-left:16px}
+  .meta{margin-left:auto;display:flex;gap:20px;font-family:var(--mono);font-size:11px;color:var(--ink3)}
+  .meta b{color:var(--ink);font-weight:600;display:block;margin-top:2px}
+
+  main{flex:1;display:grid;grid-template-columns:1fr 372px;min-height:0}
+  .stage{position:relative;background:#060A0D;display:flex;flex-direction:column;min-width:0}
+  #cv{flex:1;width:100%;display:block;cursor:crosshair}
+
+  .controls{position:absolute;top:14px;left:14px;display:flex;gap:8px;flex-wrap:wrap;z-index:5}
+  button{font-family:var(--sans);font-size:12px;font-weight:600;letter-spacing:.3px;color:var(--ink);
+    background:rgba(19,28,35,.92);border:1px solid var(--line);padding:8px 13px;border-radius:3px;cursor:pointer}
+  button:hover{border-color:var(--cyan);color:#fff}
+  button.on{background:var(--cyan);border-color:var(--cyan);color:#06181D}
+  button.primary{background:var(--cyan);border-color:var(--cyan);color:#06181D}
+  button.primary:disabled{opacity:.4;cursor:default}
+  button:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+
+  .legend{position:absolute;bottom:14px;left:14px;background:rgba(19,28,35,.92);border:1px solid var(--line);
+    border-radius:3px;padding:11px 13px;font-size:11px;display:flex;flex-direction:column;gap:7px;z-index:5}
+  .legend div{display:flex;align-items:center;gap:8px;color:var(--ink2)}
+  .sw{width:16px;height:3px;border-radius:2px;flex:none}
+  .sw.dot{width:9px;height:9px;border-radius:50%}
+
+  .stats{position:absolute;bottom:14px;right:14px;background:rgba(19,28,35,.92);border:1px solid var(--line);
+    border-radius:3px;padding:11px 15px;font-family:var(--mono);font-size:11px;color:var(--ink2);z-index:5;line-height:1.7}
+  .stats b{color:var(--ink)}
+
+  aside{background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+  .sec{padding:13px 15px;border-bottom:1px solid var(--line2)}
+  .sec h2{font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--cyan)}
+  .sec p{font-size:11px;color:var(--ink3);margin-top:3px}
+  .list{overflow-y:auto;flex:1;min-height:0}
+
+  .v{padding:11px 15px;border-bottom:1px solid var(--line2);cursor:pointer;border-left:3px solid transparent}
+  .v:hover{background:var(--panel2)}
+  .v.sel{background:var(--panel2);border-left-color:var(--cyan)}
+  .v.acc{border-left-color:var(--red)}
+  .v.acc.sel{background:#1C1315}
+  .vh{display:flex;align-items:baseline;gap:8px}
+  .vn{font-size:13px;font-weight:700}
+  .vm{font-family:var(--mono);font-size:10px;color:var(--ink3)}
+  .vs{margin-left:auto;font-family:var(--mono);font-size:14px;font-weight:700}
+  .badges{display:flex;gap:5px;margin-top:6px;flex-wrap:wrap}
+  .b{font-size:9.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:2px 6px;border-radius:2px}
+  .b-dark{background:#3A1614;color:#F09186}
+  .b-gap{background:#3A2C12;color:#E9BE72}
+  .b-acc{background:#3A1614;color:#F09186}
+  .b-clr{background:#12291B;color:#7CC694}
+  .bars{margin-top:8px;display:grid;grid-template-columns:64px 1fr 30px;gap:4px 8px;align-items:center;font-size:10px;color:var(--ink3)}
+  .bt{height:4px;background:#1B262D;border-radius:2px;overflow:hidden}
+  .bf{height:100%;background:var(--cyan)}
+  .bv{font-family:var(--mono);text-align:right;color:var(--ink2)}
+  .why{margin-top:6px;font-size:11px;color:var(--ink3);line-height:1.45}
+  .why b{color:var(--green);font-weight:600}
+
+  .empty{padding:22px 15px;font-size:12px;color:var(--ink3);line-height:1.6}
+  @media (max-width:900px){ main{grid-template-columns:1fr} aside{display:none} }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">OCEAN<span>FIR</span></div>
+  <div class="tag">Oil spill detection and vessel attribution &nbsp;·&nbsp; SIH26143 &nbsp;·&nbsp; NTRO</div>
+  <div class="meta">
+    <div>SCENE<b id="mScene">—</b></div>
+    <div>ACQUIRED<b id="mTime">—</b></div>
+    <div>VESSELS IN WINDOW<b id="mCount">—</b></div>
+    <div>STATUS<b id="mStatus" style="color:var(--amber)">AWAITING DETECTION</b></div>
+  </div>
+</header>
+
+<main>
+  <section class="stage">
+    <canvas id="cv"></canvas>
+    <div class="controls">
+      <button id="bRun" class="primary">Run detection</button>
+      <button id="bMask" class="on">Slick mask</button>
+      <button id="bTracks" class="on">AIS tracks</button>
+      <button id="bCleared">Show cleared</button>
+      <button id="bReset">Reset</button>
+    </div>
+    <div class="legend">
+      <div><span class="sw" style="background:var(--red)"></span> Detected slick</div>
+      <div><span class="sw" style="background:var(--amber)"></span> Accused vessel track</div>
+      <div><span class="sw" style="background:#4E6B7A"></span> Other traffic</div>
+      <div><span class="sw dot" style="background:var(--cyan)"></span> Dark contact, radar only</div>
+    </div>
+    <div class="stats" id="stats"></div>
+  </section>
+
+  <aside>
+    <div class="sec">
+      <h2>Suspect ranking</h2>
+      <p>Scored on proximity, track parity, temporal alignment and AIS silence</p>
+    </div>
+    <div class="list" id="list">
+      <div class="empty">Press <b>Run detection</b> to segment the scene and score vessel traffic in the acquisition window.</div>
+    </div>
+  </aside>
+</main>
+
+<script>
+/* ---------- demo data: replace by dropping a real data.json beside this file ---------- */
+const DEMO = {
+  scene:{ id:"S1A_IW_GRDH_1SDV_20230620T000234", time:"2023-06-20 00:02 UTC",
+          bbox:[-90.821,28.133,-88.555,29.829], image:null, mask:null },
+  slick:{ area_km2:14.2, length_km:9.6, head:[-89.95,28.86],
+          polygon:[[-89.95,28.86],[-89.88,28.83],[-89.78,28.78],[-89.66,28.71],[-89.55,28.66],
+                   [-89.47,28.60],[-89.44,28.54],[-89.50,28.51],[-89.60,28.55],[-89.72,28.62],
+                   [-89.83,28.70],[-89.92,28.78],[-89.97,28.83]] },
+  vessels:[
+    { mmsi:367481920, name:"ATLAS TRADER", type:"Tanker", len_m:183, score:0.87,
+      proximity:0.91, parity:0.78, temporality:0.92, ais_gap_min:47, dark:true, verdict:"accused",
+      track:[[-90.28,29.02],[-90.18,28.97],[-90.08,28.92],[-89.99,28.87],[-89.96,28.86],
+             null,null,[-89.52,28.58],[-89.41,28.52],[-89.30,28.47],[-89.18,28.42]] },
+    { mmsi:367220154, name:"GULF PIONEER", type:"Cargo", len_m:142, score:0.41,
+      proximity:0.62, parity:0.31, temporality:0.28, ais_gap_min:0, dark:false, verdict:"suspect",
+      track:[[-90.10,28.60],[-89.98,28.58],[-89.86,28.56],[-89.74,28.54],[-89.62,28.52],[-89.50,28.50]] },
+    { mmsi:368019887, name:"SEA HERON", type:"Supply", len_m:78, score:0.19,
+      proximity:0.44, parity:0.12, temporality:0.09, ais_gap_min:0, dark:false, verdict:"cleared",
+      reason:"upwind of the reconstructed drift for the whole window",
+      track:[[-89.30,29.40],[-89.36,29.32],[-89.42,29.24],[-89.48,29.16],[-89.54,29.08]] },
+    { mmsi:366998112, name:"DELTA STAR", type:"Tug", len_m:34, score:0.11,
+      proximity:0.38, parity:0.04, temporality:0.06, ais_gap_min:0, dark:false, verdict:"cleared",
+      reason:"length 34 m inconsistent with a 9.6 km slick",
+      track:[[-90.42,28.42],[-90.34,28.44],[-90.26,28.46],[-90.18,28.48]] },
+    { mmsi:367775430, name:"BAYOU QUEEN", type:"Fishing", len_m:22, score:0.08,
+      proximity:0.21, parity:0.03, temporality:0.05, ais_gap_min:0, dark:false, verdict:"cleared",
+      reason:"entered the box 3 h after the slick head had formed",
+      track:[[-88.95,29.10],[-89.02,29.04],[-89.09,28.98],[-89.16,28.92]] },
+    { mmsi:367334781, name:"RIVER MIST", type:"Cargo", len_m:96, score:0.06,
+      proximity:0.14, parity:0.02, temporality:0.03, ais_gap_min:0, dark:false, verdict:"cleared",
+      reason:"track never intersects the origin box",
+      track:[[-90.60,29.55],[-90.50,29.50],[-90.40,29.45],[-90.30,29.40],[-90.20,29.35]] },
+    { mmsi:368112009, name:"PORT SPIRIT", type:"Tanker", len_m:167, score:0.05,
+      proximity:0.10, parity:0.02, temporality:0.02, ais_gap_min:0, dark:false, verdict:"cleared",
+      reason:"stationary at anchor throughout the window",
+      track:[[-88.80,28.30],[-88.79,28.30],[-88.78,28.31],[-88.78,28.31]] }
+  ]
+};
+
+/* ---------------------------------- state ---------------------------------- */
+let D = DEMO, detected = false, sel = null, seed = 7;
+const show = { mask:true, tracks:true, cleared:false };
+const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
+let W = 0, H = 0, bg = null;
+
+const rnd = () => (seed = (seed*1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+
+function project(lon, lat){
+  const [a,b,c,d] = D.scene.bbox;
+  return [ (lon-a)/(c-a)*W, (d-lat)/(d-b)*H ];
+}
+
+/* procedural SAR-like backdrop so the app runs with zero assets */
+function buildBackdrop(){
+  const o = document.createElement("canvas"); o.width = W; o.height = H;
+  const g = o.getContext("2d");
+  g.fillStyle = "#0E151A"; g.fillRect(0,0,W,H);
+  const img = g.getImageData(0,0,W,H), p = img.data;
+  seed = 7;
+  for(let i=0;i<p.length;i+=4){
+    const v = 26 + rnd()*46;              // speckle
+    p[i]=v; p[i+1]=v+3; p[i+2]=v+7; p[i+3]=255;
+  }
+  g.putImageData(img,0,0);
+  // faint current banding so the sea reads as sea
+  g.globalAlpha = .10;
+  for(let i=0;i<26;i++){
+    g.strokeStyle = "#7FA6B8"; g.lineWidth = 12 + rnd()*30; g.beginPath();
+    const y = rnd()*H; g.moveTo(0,y);
+    g.bezierCurveTo(W*.3, y-40+rnd()*80, W*.6, y-40+rnd()*80, W, y-30+rnd()*60);
+    g.stroke();
+  }
+  g.globalAlpha = 1;
+  bg = o;
+}
+
+function slickPath(){
+  ctx.beginPath();
+  D.slick.polygon.forEach(([lo,la],i)=>{
+    const [x,y] = project(lo,la);
+    i ? ctx.lineTo(x,y) : ctx.moveTo(x,y);
+  });
+  ctx.closePath();
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  if(bg) ctx.drawImage(bg,0,0);
+
+  // dark low-backscatter footprint is always visible, mask is the model output
+  ctx.save(); slickPath(); ctx.fillStyle = "rgba(4,8,11,.72)"; ctx.fill(); ctx.restore();
+
+  if(detected && show.mask){
+    ctx.save(); slickPath();
+    ctx.fillStyle = "rgba(224,90,76,.30)"; ctx.fill();
+    ctx.strokeStyle = "#E05A4C"; ctx.lineWidth = 2; ctx.setLineDash([7,5]); ctx.stroke();
+    ctx.restore();
+    const [hx,hy] = project(...D.slick.head);
+    ctx.beginPath(); ctx.arc(hx,hy,6,0,7); ctx.fillStyle="#E05A4C"; ctx.fill();
+    ctx.strokeStyle="#fff"; ctx.lineWidth=1.5; ctx.stroke();
+    ctx.font = "600 11px -apple-system,Arial"; ctx.fillStyle = "#F09186";
+    ctx.fillText("slick head", hx+11, hy+4);
+  }
+
+  if(show.tracks){
+    for(const v of D.vessels){
+      if(v.verdict==="cleared" && !show.cleared && sel!==v.mmsi) continue;
+      const isSel = sel===v.mmsi, acc = v.verdict==="accused";
+      const dim = sel && !isSel;
+      ctx.save();
+      ctx.globalAlpha = dim ? .18 : 1;
+      ctx.strokeStyle = acc ? "#D99A3E" : (v.verdict==="suspect" ? "#8FA9B6" : "#4E6B7A");
+      ctx.lineWidth = isSel ? 3.4 : (acc ? 2.4 : 1.4);
+      ctx.setLineDash([]);
+      // draw in runs so nulls become visible AIS gaps
+      let started = false;
+      for(const pt of v.track){
+        if(!pt){ if(started){ ctx.stroke(); started=false; } continue; }
+        const [x,y] = project(pt[0],pt[1]);
+        if(!started){ ctx.beginPath(); ctx.moveTo(x,y); started=true; } else ctx.lineTo(x,y);
+      }
+      if(started) ctx.stroke();
+
+      // the gap itself, drawn as an explicit dashed bridge
+      const gi = v.track.findIndex(p=>!p);
+      if(gi>0){
+        const before = v.track[gi-1];
+        const after  = v.track.slice(gi).find(p=>!!p);
+        if(before && after){
+          const [x1,y1]=project(...before), [x2,y2]=project(...after);
+          ctx.setLineDash([3,6]); ctx.lineWidth = isSel?2.2:1.4; ctx.strokeStyle = "#35B0C9";
+          ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke(); ctx.setLineDash([]);
+          if(detected){
+            ctx.beginPath(); ctx.arc((x1+x2)/2,(y1+y2)/2,5,0,7);
+            ctx.fillStyle="#35B0C9"; ctx.fill();
+            if(isSel||acc){
+              ctx.font="600 10.5px -apple-system,Arial"; ctx.fillStyle="#7FD3E3";
+              ctx.fillText("AIS off "+v.ais_gap_min+" min", (x1+x2)/2+9, (y1+y2)/2+4);
+            }
+          }
+        }
+      }
+
+      const last = [...v.track].reverse().find(p=>!!p);
+      if(last){
+        const [x,y]=project(last[0],last[1]);
+        ctx.beginPath(); ctx.arc(x,y,isSel?5.5:4,0,7);
+        ctx.fillStyle = acc ? "#D99A3E" : "#8FA9B6"; ctx.fill();
+        if(isSel||acc){
+          ctx.font="700 11px -apple-system,Arial"; ctx.fillStyle="#DBE6EC";
+          ctx.fillText(v.name, x+9, y-6);
+        }
+      }
+      ctx.restore();
+    }
+  }
+}
+
+/* ---------------------------------- panel ---------------------------------- */
+function renderList(){
+  const el = document.getElementById("list");
+  if(!detected){
+    el.innerHTML = '<div class="empty">Press <b>Run detection</b> to segment the scene and score vessel traffic in the acquisition window.</div>';
+    return;
+  }
+  const vs = [...D.vessels].sort((a,b)=>b.score-a.score)
+              .filter(v=> show.cleared || v.verdict!=="cleared");
+  el.innerHTML = vs.map(v=>{
+    const acc = v.verdict==="accused";
+    const badge = acc ? '<span class="b b-acc">Accused</span>'
+                : v.verdict==="cleared" ? '<span class="b b-clr">Cleared</span>' : '';
+    const dark = v.dark ? '<span class="b b-dark">Dark contact</span>' : '';
+    const gap  = v.ais_gap_min ? `<span class="b b-gap">AIS off ${v.ais_gap_min} min</span>` : '';
+    const bar = (lab,val)=>`<span>${lab}</span><span class="bt"><span class="bf" style="width:${Math.round(val*100)}%"></span></span><span class="bv">${val.toFixed(2)}</span>`;
+    const detail = v.verdict==="cleared"
+      ? `<div class="why"><b>Cleared:</b> ${v.reason}</div>`
+      : `<div class="bars">${bar("Proximity",v.proximity)}${bar("Parity",v.parity)}${bar("Temporality",v.temporality)}</div>`;
+    return `<div class="v ${acc?'acc':''} ${sel===v.mmsi?'sel':''}" data-m="${v.mmsi}">
+      <div class="vh"><span class="vn">${v.name}</span><span class="vm">${v.type} · ${v.len_m} m</span>
+        <span class="vs" style="color:${acc?'var(--red)':v.score>.3?'var(--amber)':'var(--ink3)'}">${v.score.toFixed(2)}</span></div>
+      <div class="vm" style="margin-top:2px">MMSI ${v.mmsi}</div>
+      <div class="badges">${badge}${dark}${gap}</div>
+      ${detail}
+    </div>`;
+  }).join("");
+  el.querySelectorAll(".v").forEach(n=>n.onclick=()=>{
+    const m = +n.dataset.m; sel = (sel===m ? null : m); renderList(); draw();
+  });
+}
+
+function renderStats(){
+  const s = document.getElementById("stats");
+  const n = D.vessels.length, cleared = D.vessels.filter(v=>v.verdict==="cleared").length;
+  s.innerHTML = detected
+    ? `slick area <b>${D.slick.area_km2} km²</b> &nbsp; length <b>${D.slick.length_km} km</b><br>
+       vessels scored <b>${n}</b> &nbsp; excluded <b>${cleared}</b> &nbsp; accused <b>1</b>`
+    : `scene loaded &nbsp; <b>${n}</b> vessels in the acquisition window`;
+}
+
+/* ---------------------------------- wiring ---------------------------------- */
+function resize(){
+  const r = cv.parentElement.getBoundingClientRect();
+  const dpr = Math.min(devicePixelRatio||1, 2);
+  W = Math.floor(r.width); H = Math.floor(r.height);
+  cv.width = W*dpr; cv.height = H*dpr; cv.style.width = W+"px"; cv.style.height = H+"px";
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  buildBackdrop(); draw();
+}
+addEventListener("resize", resize);
+
+function boot(){
+  document.getElementById("mScene").textContent = D.scene.id.slice(0,28);
+  document.getElementById("mTime").textContent  = D.scene.time;
+  document.getElementById("mCount").textContent = D.vessels.length;
+  resize(); renderStats(); renderList();
+}
+
+document.getElementById("bRun").onclick = e=>{
+  const b = e.target; b.disabled = true; b.textContent = "Segmenting…";
+  document.getElementById("mStatus").textContent = "RUNNING U-NET";
+  setTimeout(()=>{
+    detected = true;
+    document.getElementById("mStatus").textContent = "1 ACCUSED · " +
+      D.vessels.filter(v=>v.verdict==="cleared").length + " CLEARED";
+    document.getElementById("mStatus").style.color = "var(--red)";
+    b.textContent = "Detection complete";
+    renderList(); renderStats(); draw();
+  }, 900);
+};
+const tog = (id,key)=> document.getElementById(id).onclick = e=>{
+  show[key] = !show[key]; e.target.classList.toggle("on", show[key]);
+  renderList(); draw();
+};
+tog("bMask","mask"); tog("bTracks","tracks"); tog("bCleared","cleared");
+document.getElementById("bReset").onclick = ()=>{
+  detected=false; sel=null; show.cleared=false;
+  document.getElementById("bCleared").classList.remove("on");
+  const b=document.getElementById("bRun"); b.disabled=false; b.textContent="Run detection";
+  const st=document.getElementById("mStatus"); st.textContent="AWAITING DETECTION"; st.style.color="var(--amber)";
+  renderList(); renderStats(); draw();
+};
+
+/* real data if present, demo data otherwise */
+fetch("data.json").then(r=>r.ok?r.json():null).then(j=>{ if(j){ D=j; } boot(); }).catch(boot);
+</script>
+</body>
+</html>
