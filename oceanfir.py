@@ -27,6 +27,12 @@ from skimage import measure, morphology
 # proximity scale scored every one of 557 vessels exactly zero, which
 # collapsed the whole ranking onto temporality. See CONTRACT.md.
 PROX_SCALE_M = 25_000.0
+# Shape of the proximity falloff. "linear" is 1 - d/PROX_SCALE_M, which treats
+# 0.5 km and 3 km as nearly the same thing — useless for separating vessels in
+# one shipping lane. "exp" is exp(-d/PROX_TAU_M), which decides at the scale a
+# discharge actually happens on. Swept by inject.py --prox.
+PROX_SHAPE   = "exp"
+PROX_TAU_M   = 2_500.0
 MIN_MARGIN   = 0.08     # top score must clear the runner-up by this much
 # 40 km was too loose: almost every vessel has SOME AIS gap somewhere in a
 # 200 km scene, so "silence" scored near 1 for everyone and stopped
@@ -195,7 +201,8 @@ def score_vessels(df, slick, bbox, t0, gap_min=20.0, max_track=400):
                                              ax, ay, bx, by)[0])
 
         # ---- component scores, all 0..1
-        proximity   = float(np.clip(1 - dmin / PROX_SCALE_M, 0, 1))
+        proximity   = (float(math.exp(-dmin / PROX_TAU_M)) if PROX_SHAPE == "exp"
+                       else float(np.clip(1 - dmin / PROX_SCALE_M, 0, 1)))
         track_len   = float(np.hypot(np.diff(vx), np.diff(vy)).sum())
         parity      = float(np.clip(1 - abs(track_len - slick_len_m) /
                                     max(slick_len_m, 1) / 2, 0, 1)) if track_len > 0 else 0.0

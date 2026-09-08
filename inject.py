@@ -256,8 +256,13 @@ def main():
     p.add_argument("--negatives", type=int, default=10)
     p.add_argument("--gap-min", type=float, default=60.0, help="AIS blackout length")
     p.add_argument("--seed", type=int, default=7)
+    p.add_argument("--offset-fixed", type=float, default=2200.0,
+                   help="slick offset held constant during the prox sweep")
     p.add_argument("--gap-scale-fixed", type=float, default=10_000.0,
                    help="GAP_SCALE_M held constant during the offset sweep")
+    p.add_argument("--prox", default=None,
+                   help="comma-separated proximity shapes to compare, "
+                        "e.g. linear:25000,exp:2000,exp:4000,exp:8000")
     p.add_argument("--offsets", default=None,
                    help="comma-separated slick offsets in m from the wake, "
                         "e.g. 200,1000,2200,4000")
@@ -319,6 +324,37 @@ def main():
                       f"{r['clearance_km']:>5.1f} km clear   top {r['top_score']}  "
                       f"margin {r['margin']}")
         return rows, skipped
+
+    if a.prox:
+        print("proximity-shape experiment — linear falloff over 25 km cannot tell\n"
+              "0.5 km from 3 km, so every vessel in one shipping lane scores ~0.9\n"
+              "and proximity stops separating them. Exponential decay decides at\n"
+              "the scale a discharge actually happens on. Same vessels throughout.\n")
+        print(f"  {'shape':>14} {'recall':>7} {'wrong':>7} {'false-acc':>10} "
+              f"{'median rank':>12}")
+        res = []
+        for spec in a.prox.split(","):
+            kind, _, val = spec.partition(":")
+            oceanfir.PROX_SHAPE = kind.strip()
+            if kind.strip() == "exp":
+                oceanfir.PROX_TAU_M = float(val)
+            else:
+                oceanfir.PROX_SCALE_M = float(val)
+            rws, _ = run_all(a.gap_scale_fixed, offset_m=a.offset_fixed, verbose=False)
+            p_ = [r for r in rws if r["kind"] == "positive"]
+            n_ = [r for r in rws if r["kind"] == "negative"]
+            rec = sum(r["hit"] for r in p_) / max(len(p_), 1)
+            wrg = sum(r["wrong"] for r in p_) / max(len(p_), 1)
+            fa = sum(1 for r in n_ if r["accused_mmsi"]) / max(len(n_), 1)
+            mr = float(np.median([r["target_rank"] for r in p_ if r["target_rank"]]))
+            res.append({"shape": spec, "recall": round(rec, 3), "wrong": round(wrg, 3),
+                        "false_acc": round(fa, 3), "median_rank": mr})
+            print(f"  {spec:>14} {rec:>7.0%} {wrg:>7.0%} {fa:>10.0%} {mr:>12.1f}")
+        os.makedirs(os.path.dirname(a.json) or ".", exist_ok=True)
+        json.dump({"proximity_experiment": res, "gap_scale_m": a.gap_scale_fixed,
+                   "offset_m": a.offset_fixed}, open(a.json, "w"), indent=1)
+        print(f"\nwrote {a.json}")
+        return
 
     offsets = [float(x) for x in a.offsets.split(",")] if a.offsets else []
     if offsets:
