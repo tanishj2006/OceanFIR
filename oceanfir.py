@@ -28,7 +28,13 @@ from skimage import measure, morphology
 # collapsed the whole ranking onto temporality. See CONTRACT.md.
 PROX_SCALE_M = 25_000.0
 MIN_MARGIN   = 0.08     # top score must clear the runner-up by this much
-GAP_SCALE_M  = 40_000.0
+# 40 km was too loose: almost every vessel has SOME AIS gap somewhere in a
+# 200 km scene, so "silence" scored near 1 for everyone and stopped
+# discriminating. inject.py measured it — at 40 km the system falsely accused
+# a vessel in 3 of 10 empty-water trials; at 20 km and below, 0 of 10, and the
+# guilty vessel's median rank improved from 3.5 to 2.0. See
+# out/gap_scale_experiment.json.
+GAP_SCALE_M  = 10_000.0
 
 AIS_COLS = ["MMSI", "BaseDateTime", "LAT", "LON", "SOG", "VesselName", "VesselType", "Length"]
 
