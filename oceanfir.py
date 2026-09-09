@@ -187,9 +187,20 @@ def detect_slick(sar_path, bbox, min_km2=1.0):
 
 
 # ----------------------------------------------------------------- AIS
-def load_ais(path, bbox, t0, window_h):
+def load_ais(path, bbox, t0, window_h, t_from=None):
+    """Rows inside bbox within +/- window_h of t0.
+
+    t_from extends the window BACKWARDS to an earlier time and is used only by
+    drift-origin scoring: the origin can be many hours before the acquisition,
+    and the vessels that were at the discharge point then are otherwise filtered
+    out before scoring ever sees them. The span is kept continuous rather than
+    re-centred, because a blackout usually begins near the discharge and runs on
+    towards the acquisition -- loading only around the origin would clip the far
+    edge of the very gap the silence term is scoring. t_from=None is the old
+    behaviour exactly."""
     lon0, lat0, lon1, lat1 = bbox
-    ta, tb = t0 - timedelta(hours=window_h), t0 + timedelta(hours=window_h)
+    start = t_from if (t_from is not None and t_from < t0) else t0
+    ta, tb = start - timedelta(hours=window_h), t0 + timedelta(hours=window_h)
     keep, total = [], 0
     for ch in pd.read_csv(path, usecols=lambda c: c.strip() in AIS_COLS,
                           chunksize=400_000, low_memory=False):
@@ -207,7 +218,14 @@ def load_ais(path, bbox, t0, window_h):
     return df
 
 
-def score_vessels(df, slick, bbox, t0, gap_min=20.0, max_track=400):
+def score_vessels(df, slick, bbox, t0, gap_min=20.0, max_track=400,
+                  score_time=None):
+    # score_time is the instant the slick is being attributed TO. It equals t0
+    # for observed-slick scoring; for drift-origin scoring it is the hindcast
+    # origin time, so temporality rewards a vessel that was there when the oil
+    # was discharged rather than when the satellite passed. Keyword-only with a
+    # None default so every existing caller (inject.py, drift_ab.py) is unchanged.
+    t_ref = score_time if score_time is not None else t0
     to_m, _ = make_proj(bbox)
     sx, sy = to_m([p[0] for p in slick["polygon"]], [p[1] for p in slick["polygon"]])
     ax, ay, bx, by = sx[:-1], sy[:-1], sx[1:], sy[1:]
@@ -241,7 +259,7 @@ def score_vessels(df, slick, bbox, t0, gap_min=20.0, max_track=400):
         track_len   = float(np.hypot(np.diff(vx), np.diff(vy)).sum())
         parity      = float(np.clip(1 - abs(track_len - slick_len_m) /
                                     max(slick_len_m, 1) / 2, 0, 1)) if track_len > 0 else 0.0
-        dt_h        = abs((pd.Timestamp(t[i_near]) - t0).total_seconds()) / 3600
+        dt_h        = abs((pd.Timestamp(t[i_near]) - t_ref).total_seconds()) / 3600
         temporality = float(np.clip(1 - dt_h / 6, 0, 1))
         silence     = float(np.clip(gap / 90, 0, 1) *
                             np.clip(1 - gap_near / GAP_SCALE_M, 0, 1)) if gap >= gap_min else 0.0
@@ -383,8 +401,32 @@ def main():
         except Exception as e:
             print(f"     drift failed ({type(e).__name__}: {e}) — drift stays null")
 
+    # --score-at origin moves the slick back in SPACE to where it was
+    # discharged; it has to move the clock back with it, or we would be asking
+    # which vessel was near the discharge point during the satellite pass --
+    # a question with no physical meaning. score_time drives temporality and
+    # widens the AIS window back to cover the discharge.
+    score_time = t0
+    if a.score_at == "origin" and drift:
+        score_time = pd.Timestamp(datetime.fromisoformat(
+            drift["origin_time_iso"].rstrip("Z")))
+        print(f"     scoring clock moved back to {score_time} "
+              f"({(t0 - score_time).total_seconds()/3600:.1f} h before acquisition)")
+
     print("2/3  loading AIS …")
-    df = load_ais(a.ais, a.bbox, t0, a.window)
+    df = load_ais(a.ais, a.bbox, t0, a.window,
+                  t_from=score_time if score_time != t0 else None)
+
+    if score_time != t0:
+        span0, span1 = df.BaseDateTime.min(), df.BaseDateTime.max()
+        if score_time < span0:
+            print(f"     WARNING: the hindcast origin {score_time} is EARLIER than the "
+                  f"first AIS row in this file ({span0}).")
+            print(f"              No vessel has a fix anywhere near the discharge time, so "
+                  f"temporality will be 0 for all of them and only proximity and silence "
+                  f"carry the score.")
+            print(f"              Scoring at the origin needs the previous day's AIS file "
+                  f"concatenated onto this one. Until then use --score-at observed.")
 
     print("3/3  scoring vessels …")
     scoring_slick = slick
@@ -398,7 +440,7 @@ def main():
                                              for p in slick["polygon"]])
         print(f"     scoring against the hindcast origin, shifted "
               f"{math.hypot(sx * 111320 * math.cos(math.radians(head[1])), sy * 110540)/1000:.1f} km")
-    vessels = score_vessels(df, scoring_slick, a.bbox, t0)
+    vessels = score_vessels(df, scoring_slick, a.bbox, t0, score_time=score_time)
     print(f"     scored {len(vessels)} vessels")
     for v in vessels[:5]:
         print(f"     {v['score']:.2f}  {v['name']:<22} {v['verdict']:<8} "
