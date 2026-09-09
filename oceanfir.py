@@ -324,6 +324,14 @@ def main():
                         "notebooks/train_unet.ipynb")
     p.add_argument("--min-oil-prob", type=float, default=0.5,
                    help="unet only: probability above which a pixel counts as oil")
+    p.add_argument("--score-at", choices=["observed", "origin"], default="observed",
+                   help="score vessel proximity against the slick as observed, or "
+                        "against the back-advected discharge origin. 'origin' is "
+                        "measurably better WHEN THE SLICK AGE IS KNOWN (drift_ab.py: "
+                        "at a 12 h drift it takes recall 0%%->30%% and wrong "
+                        "accusations 15%%->10%%). We do not know the age on the real "
+                        "scene, and correcting a fresh slick by 12 h would move it "
+                        "14 km the wrong way, so the default stays 'observed'.")
     p.add_argument("--drift-hours", type=float, default=12.0,
                    help="how far back to hindcast the slick origin (0 disables)")
     p.add_argument("--u-ms", type=float, default=-0.25, help="surface current east, m/s")
@@ -379,7 +387,18 @@ def main():
     df = load_ais(a.ais, a.bbox, t0, a.window)
 
     print("3/3  scoring vessels …")
-    vessels = score_vessels(df, slick, a.bbox, t0)
+    scoring_slick = slick
+    if a.score_at == "origin" and drift:
+        # shift the whole polygon by the head -> origin vector, so proximity is
+        # measured to where the oil was discharged rather than where it drifted
+        head = slick["head"]
+        sx = drift["origin"][0] - head[0]
+        sy = drift["origin"][1] - head[1]
+        scoring_slick = dict(slick, polygon=[[p[0] + sx, p[1] + sy]
+                                             for p in slick["polygon"]])
+        print(f"     scoring against the hindcast origin, shifted "
+              f"{math.hypot(sx * 111320 * math.cos(math.radians(head[1])), sy * 110540)/1000:.1f} km")
+    vessels = score_vessels(df, scoring_slick, a.bbox, t0)
     print(f"     scored {len(vessels)} vessels")
     for v in vessels[:5]:
         print(f"     {v['score']:.2f}  {v['name']:<22} {v['verdict']:<8} "
@@ -392,6 +411,7 @@ def main():
            "detector": a.detector,
            "slick": slick,
            "drift": drift,
+           "scored_at": a.score_at,
            "vessels": vessels[:a.top]}
     with open(a.out, "w") as f:
         json.dump(doc, f, indent=1)
