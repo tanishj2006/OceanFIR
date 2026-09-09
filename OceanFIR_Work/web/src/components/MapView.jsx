@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { API_BASE, MOCK_RESULT_URL } from '../api'
+import { firstGap, formatCoord, formatKm, isPoint, percentage, timestamp } from '../sceneUtils'
 import './MapView.css'
 
 const COLORS = {
@@ -12,44 +12,13 @@ const COLORS = {
 const MIN_ZOOM = 1
 const MAX_ZOOM = 6
 
-function isPoint(value) {
-  return Array.isArray(value) && Number.isFinite(value[0]) && Number.isFinite(value[1])
-}
-
-function validateResult(data) {
-  const bbox = data?.scene?.bbox
-  if (!Array.isArray(bbox) || bbox.length !== 4 || !bbox.every(Number.isFinite)) {
-    throw new Error('The result did not contain a valid scene bounding box.')
-  }
-  if (!data?.detection?.slick?.polygon || !Array.isArray(data.vessels)) {
-    throw new Error('The result did not contain the required scene data.')
-  }
-  return data
-}
-
-function loadImage(url) {
-  return new Promise((resolve, reject) => {
-    const image = new Image()
-    image.crossOrigin = 'anonymous'
-    image.onload = () => resolve(image)
-    image.onerror = () => reject(new Error(`Could not load scene imagery: ${url}`))
-    image.src = url
-  })
-}
-
-function sceneAssetUrl(result, filename) {
-  if (!filename) return null
-  const folder = result.meta?.source === 'mock' ? 'mock' : result.scene.id
-  return `${API_BASE}/static/${encodeURIComponent(folder)}/${encodeURIComponent(filename)}`
-}
-
-function distanceToSegment(point, start, end) {
-  const dx = end.x - start.x
-  const dy = end.y - start.y
-  const denominator = dx * dx + dy * dy
-  if (!denominator) return Math.hypot(point.x - start.x, point.y - start.y)
-  const t = Math.max(0, Math.min(1, ((point.x - start.x) * dx + (point.y - start.y) * dy) / denominator))
-  return Math.hypot(point.x - (start.x + t * dx), point.y - (start.y + t * dy))
+const DEFAULT_LAYERS = {
+  slick: true,
+  aisTrack: true,
+  aisGap: true,
+  drift: true,
+  darkContact: true,
+  prediction: true,
 }
 
 function fittedMap(size, bbox) {
@@ -62,64 +31,71 @@ function fittedMap(size, bbox) {
   return { x: (size.width - width) / 2, y: (size.height - height) / 2, width, height }
 }
 
-function percentage(value) {
-  return Number.isFinite(value) ? `${(value * 100).toFixed(1)}%` : null
+function projectPoint(map, bbox, lon, lat) {
+  const [lonMin, latMin, lonMax, latMax] = bbox
+  return {
+    x: map.x + ((lon - lonMin) / (lonMax - lonMin)) * map.width,
+    y: map.y + ((latMax - lat) / (latMax - latMin)) * map.height,
+  }
 }
 
-function timestamp(value) {
-  if (!value) return null
-  const date = new Date(value)
-  if (Number.isNaN(date.valueOf())) return null
-  return `${new Intl.DateTimeFormat('en-GB', {
-    day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'UTC', hour12: false,
-  }).format(date)} UTC`
+function distanceToSegment(point, start, end) {
+  const dx = end.x - start.x
+  const dy = end.y - start.y
+  const denominator = dx * dx + dy * dy
+  if (!denominator) return Math.hypot(point.x - start.x, point.y - start.y)
+  const t = Math.max(0, Math.min(1, ((point.x - start.x) * dx + (point.y - start.y) * dy) / denominator))
+  return Math.hypot(point.x - (start.x + t * dx), point.y - (start.y + t * dy))
 }
 
-function Metric({ label, value, tone }) {
-  if (value === null || value === undefined || value === '') return null
-  return <div className="metric"><dt>{label}</dt><dd className={tone ? `metric-${tone}` : ''}>{value}</dd></div>
+function pointInPolygon(point, polygon) {
+  let inside = false
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const xi = polygon[i].x
+    const yi = polygon[i].y
+    const xj = polygon[j].x
+    const yj = polygon[j].y
+    if ((yi > point.y) !== (yj > point.y) && point.x < ((xj - xi) * (point.y - yi)) / (yj - yi) + xi) {
+      inside = !inside
+    }
+  }
+  return inside
 }
 
-export default function MapView({ onSelect, selectedMmsi }) {
+function viewMap(size, bbox, view) {
+  const baseMap = fittedMap(size, bbox)
+  const centerX = size.width / 2
+  const centerY = size.height / 2
+  return {
+    x: centerX + view.panX + (baseMap.x - centerX) * view.zoom,
+    y: centerY + view.panY + (baseMap.y - centerY) * view.zoom,
+    width: baseMap.width * view.zoom,
+    height: baseMap.height * view.zoom,
+  }
+}
+
+export default function MapView({
+  result,
+  assetUrls,
+  selectedMmsi,
+  onSelect,
+  highlight,
+  onHighlight,
+}) {
   const canvasRef = useRef(null)
   const containerRef = useRef(null)
-  const resultRef = useRef(null)
   const geometryRef = useRef(null)
   const panRef = useRef(null)
   const didPanRef = useRef(false)
-  const [result, setResult] = useState(null)
-  const [assetUrls, setAssetUrls] = useState(null)
-  const [status, setStatus] = useState('loading')
-  const [error, setError] = useState('')
+  const viewRef = useRef({ zoom: MIN_ZOOM, panX: 0, panY: 0 })
   const [size, setSize] = useState({ width: 0, height: 0, dpr: 1 })
   const [view, setView] = useState({ zoom: MIN_ZOOM, panX: 0, panY: 0 })
+  const [layers, setLayers] = useState(DEFAULT_LAYERS)
+  const [slickOpacity, setSlickOpacity] = useState(0.22)
+  const [maskOpacity, setMaskOpacity] = useState(0.45)
+  const [tooltip, setTooltip] = useState(null)
 
-  useEffect(() => {
-    let cancelled = false
-    async function fetchScene() {
-      try {
-        setStatus('loading')
-        const response = await fetch(MOCK_RESULT_URL)
-        if (!response.ok) throw new Error(`Scene request failed (${response.status}).`)
-        const sceneResult = validateResult(await response.json())
-        const sceneUrl = sceneAssetUrl(sceneResult, sceneResult.scene.image)
-        const maskUrl = sceneAssetUrl(sceneResult, sceneResult.scene.mask)
-        await Promise.all([loadImage(sceneUrl), loadImage(maskUrl)])
-        if (cancelled) return
-        resultRef.current = sceneResult
-        setAssetUrls({ sceneUrl, maskUrl })
-        setResult(sceneResult)
-        setStatus('ready')
-      } catch (caught) {
-        if (!cancelled) {
-          setError(caught instanceof Error ? caught.message : 'Unable to load the scene.')
-          setStatus('error')
-        }
-      }
-    }
-    fetchScene()
-    return () => { cancelled = true }
-  }, [])
+  viewRef.current = view
 
   useEffect(() => {
     const element = containerRef.current
@@ -132,10 +108,70 @@ export default function MapView({ onSelect, selectedMmsi }) {
     return () => observer.disconnect()
   }, [])
 
+  const inspect = useCallback((local, data, geometry) => {
+    if (!data || !geometry) return null
+    const project = ([lon, lat]) => projectPoint(geometry.map, geometry.bbox, lon, lat)
+    let nearest = null
+
+    if (layers.darkContact) {
+      for (const contact of data.dark_contacts || []) {
+        if (!Number.isFinite(contact.lon) || !Number.isFinite(contact.lat)) continue
+        const point = project([contact.lon, contact.lat])
+        const distance = Math.hypot(local.x - point.x, local.y - point.y)
+        if (distance < 12 && (!nearest || distance < nearest.distance)) {
+          nearest = { kind: 'dark', distance, contact }
+        }
+      }
+    }
+
+    data.vessels.forEach((vessel) => {
+      const track = Array.isArray(vessel.track) ? vessel.track : []
+      for (let index = 1; index < track.length; index += 1) {
+        const prev = track[index - 1]
+        const next = track[index]
+        if (prev == null || next == null) {
+          const before = isPoint(prev) ? prev : [...track.slice(0, index)].reverse().find(isPoint)
+          const after = isPoint(next) ? next : track.slice(index + 1).find(isPoint)
+          if (layers.aisGap && isPoint(before) && isPoint(after)) {
+            const distance = distanceToSegment(local, project(before), project(after))
+            if (distance < 10 && (!nearest || distance < nearest.distance)) {
+              nearest = { kind: 'gap', distance, vessel, before, after }
+            }
+          }
+          continue
+        }
+        if (layers.aisTrack && isPoint(prev) && isPoint(next)) {
+          const distance = distanceToSegment(local, project(prev), project(next))
+          if (distance < 10 && (!nearest || distance < nearest.distance)) {
+            nearest = { kind: 'vessel', distance, vessel }
+          }
+        }
+      }
+    })
+
+    if (layers.prediction && data.drift?.origin && Number.isFinite(data.drift.uncertainty_km)) {
+      const origin = project(data.drift.origin)
+      const kmPerPixel = ((geometry.bbox[3] - geometry.bbox[1]) * 111) / geometry.map.height
+      const radius = Math.max(2, data.drift.uncertainty_km / kmPerPixel)
+      const distance = Math.hypot(local.x - origin.x, local.y - origin.y)
+      if (Math.abs(distance - radius) < 8 || distance <= radius) {
+        if (!nearest) nearest = { kind: 'prediction', distance, drift: data.drift }
+      }
+    }
+
+    if (!nearest && layers.slick) {
+      const polygon = data.detection.slick.polygon.filter(isPoint).map(project)
+      if (polygon.length > 2 && pointInPolygon(local, polygon)) {
+        nearest = { kind: 'slick', distance: 0, slick: data.detection.slick }
+      }
+    }
+
+    return nearest
+  }, [layers])
+
   const draw = useCallback(() => {
     const canvas = canvasRef.current
-    const data = resultRef.current
-    if (!canvas || !data || !size.width || !size.height) return
+    if (!canvas || !result || !size.width || !size.height) return
 
     canvas.width = Math.round(size.width * size.dpr)
     canvas.height = Math.round(size.height * size.dpr)
@@ -145,21 +181,10 @@ export default function MapView({ onSelect, selectedMmsi }) {
     context.setTransform(size.dpr, 0, 0, size.dpr, 0, 0)
     context.clearRect(0, 0, size.width, size.height)
 
-    const [lonMin, latMin, lonMax, latMax] = data.scene.bbox
-    const baseMap = fittedMap(size, data.scene.bbox)
-    const centerX = size.width / 2
-    const centerY = size.height / 2
-    const map = {
-      x: centerX + view.panX + (baseMap.x - centerX) * view.zoom,
-      y: centerY + view.panY + (baseMap.y - centerY) * view.zoom,
-      width: baseMap.width * view.zoom,
-      height: baseMap.height * view.zoom,
-    }
-    geometryRef.current = { map, bbox: data.scene.bbox }
-    const project = ([lon, lat]) => ({
-      x: map.x + ((lon - lonMin) / (lonMax - lonMin)) * map.width,
-      y: map.y + ((latMax - lat) / (latMax - latMin)) * map.height,
-    })
+    const bbox = result.scene.bbox
+    const map = viewMap(size, bbox, view)
+    geometryRef.current = { map, bbox }
+    const project = ([lon, lat]) => projectPoint(map, bbox, lon, lat)
     const strokePath = (points, style, width, dash = []) => {
       if (points.length < 2) return
       context.save(); context.strokeStyle = style; context.lineWidth = width; context.setLineDash(dash)
@@ -167,10 +192,14 @@ export default function MapView({ onSelect, selectedMmsi }) {
       context.stroke(); context.restore()
     }
 
-    const slick = data.detection.slick
+    const slick = result.detection.slick
     const polygon = slick.polygon.filter(isPoint)
-    if (polygon.length > 1) {
-      context.save(); context.strokeStyle = COLORS.slick; context.lineWidth = 2.5; context.fillStyle = 'rgba(224, 80, 60, 0.22)'
+    const slickActive = highlight?.kind === 'slick'
+    if (layers.slick && polygon.length > 1) {
+      context.save()
+      context.strokeStyle = COLORS.slick
+      context.lineWidth = slickActive ? 4 : 2.5
+      context.fillStyle = `rgba(224, 80, 60, ${slickActive ? Math.min(0.45, slickOpacity + 0.16) : slickOpacity})`
       context.beginPath(); polygon.forEach((point, index) => { const p = project(point); index ? context.lineTo(p.x, p.y) : context.moveTo(p.x, p.y) }); context.closePath(); context.fill(); context.stroke(); context.restore()
       const labelPoint = isPoint(slick.centroid) ? project(slick.centroid) : project(polygon[0])
       const label = 'OIL SLICK DETECTED'
@@ -183,69 +212,69 @@ export default function MapView({ onSelect, selectedMmsi }) {
       context.fillStyle = '#ffd5cc'; context.fillText(label, labelX + 6, labelY - 2); context.restore()
     }
 
-    if (data.drift?.path?.length) {
-      strokePath(data.drift.path.filter(isPoint), COLORS.drift, 1.5, [2, 6])
-      if (isPoint(data.drift.origin)) {
-        const origin = project(data.drift.origin)
-        const kmPerPixel = ((latMax - latMin) * 111) / map.height
-        const radius = Math.max(2, data.drift.uncertainty_km / kmPerPixel)
-        context.save(); context.strokeStyle = 'rgba(255,255,255,.85)'; context.lineWidth = 1; context.setLineDash([3, 4]); context.beginPath(); context.arc(origin.x, origin.y, radius, 0, Math.PI * 2); context.stroke(); context.restore()
+    if (result.drift?.path?.length && (layers.drift || layers.prediction)) {
+      if (layers.drift) strokePath(result.drift.path.filter(isPoint), COLORS.drift, highlight?.kind === 'prediction' ? 2.4 : 1.5, [2, 6])
+      if (layers.prediction && isPoint(result.drift.origin)) {
+        const origin = project(result.drift.origin)
+        const kmPerPixel = ((bbox[3] - bbox[1]) * 111) / map.height
+        const radius = Math.max(2, result.drift.uncertainty_km / kmPerPixel)
+        context.save()
+        context.fillStyle = highlight?.kind === 'prediction' ? 'rgba(92,200,212,0.16)' : 'rgba(92,200,212,0.08)'
+        context.strokeStyle = 'rgba(255,255,255,.85)'
+        context.lineWidth = 1
+        context.setLineDash([3, 4])
+        context.beginPath()
+        context.arc(origin.x, origin.y, radius, 0, Math.PI * 2)
+        context.fill()
+        context.stroke()
+        context.restore()
       }
     }
 
-    data.vessels.forEach((vessel) => {
-      const selected = selectedMmsi === vessel.mmsi
-      const alpha = selectedMmsi == null || selected ? 1 : 0.2
+    result.vessels.forEach((vessel) => {
+      const selected = selectedMmsi === vessel.mmsi || highlight?.vessel?.mmsi === vessel.mmsi
+      const alpha = selectedMmsi == null || selected || highlight?.kind === 'slick' ? 1 : 0.22
       const track = Array.isArray(vessel.track) ? vessel.track : []
       context.save(); context.globalAlpha = alpha
       let run = []
-      const flushRun = () => { strokePath(run, COLORS.track, selected ? 2.5 : 1.5); run = [] }
+      const flushRun = () => {
+        if (layers.aisTrack) strokePath(run, COLORS.track, selected ? 2.8 : 1.5)
+        run = []
+      }
       track.forEach((point, index) => {
         if (isPoint(point)) { run.push(point); return }
         flushRun()
         const before = track[index - 1]
         const after = track.slice(index + 1).find(isPoint)
-        if (isPoint(before) && isPoint(after)) {
-          strokePath([before, after], COLORS.gap, selected ? 4 : 3, [8, 6])
+        if (layers.aisGap && isPoint(before) && isPoint(after)) {
+          const gapActive = highlight?.kind === 'gap' && highlight.vessel?.mmsi === vessel.mmsi
+          strokePath([before, after], COLORS.gap, gapActive || selected ? 4.5 : 3, [8, 6])
           const a = project(before); const b = project(after)
-          context.save(); context.globalAlpha = 1; context.fillStyle = COLORS.gap; context.font = '600 11px system-ui, sans-serif'; context.fillText(`AIS gap ${vessel.ais_gap_min ?? 0} min`, (a.x + b.x) / 2 + 6, (a.y + b.y) / 2 - 6); context.restore()
+          context.save(); context.globalAlpha = 1; context.fillStyle = COLORS.gap; context.font = '600 11px system-ui, sans-serif'
+          context.fillText(`AIS gap ${vessel.ais_gap_min ?? 0} min`, (a.x + b.x) / 2 + 6, (a.y + b.y) / 2 - 6)
+          context.restore()
         }
       })
       flushRun(); context.restore()
     })
 
-    ;(data.dark_contacts || []).forEach((contact) => {
-      if (!Number.isFinite(contact.lon) || !Number.isFinite(contact.lat)) return
-      const point = project([contact.lon, contact.lat])
-      context.save(); context.strokeStyle = COLORS.gap; context.lineWidth = 2; context.strokeRect(point.x - 5, point.y - 5, 10, 10); context.restore()
-    })
-  }, [selectedMmsi, size, view])
-
-  useEffect(() => { if (status === 'ready') draw() }, [draw, status, result])
-
-  const handleClick = (event) => {
-    if (didPanRef.current) {
-      didPanRef.current = false
-      return
+    if (layers.darkContact) {
+      ;(result.dark_contacts || []).forEach((contact) => {
+        if (!Number.isFinite(contact.lon) || !Number.isFinite(contact.lat)) return
+        const point = project([contact.lon, contact.lat])
+        const active = highlight?.kind === 'dark' && highlight.contact?.id === contact.id
+        context.save()
+        context.strokeStyle = COLORS.gap
+        context.lineWidth = active ? 3 : 2
+        context.fillStyle = active ? 'rgba(92,200,212,0.25)' : 'transparent'
+        context.fillRect(point.x - 5, point.y - 5, 10, 10)
+        context.strokeRect(point.x - 5, point.y - 5, 10, 10)
+        context.restore()
+      })
     }
-    const data = resultRef.current
-    const geometry = geometryRef.current
-    if (!data || !geometry) return
-    const rect = event.currentTarget.getBoundingClientRect()
-    const click = { x: event.clientX - rect.left, y: event.clientY - rect.top }
-    const [lonMin, latMin, lonMax, latMax] = geometry.bbox
-    const project = ([lon, lat]) => ({ x: geometry.map.x + ((lon - lonMin) / (lonMax - lonMin)) * geometry.map.width, y: geometry.map.y + ((latMax - lat) / (latMax - latMin)) * geometry.map.height })
-    let nearest = null
-    data.vessels.forEach((vessel) => {
-      const track = Array.isArray(vessel.track) ? vessel.track : []
-      for (let index = 1; index < track.length; index += 1) {
-        if (!isPoint(track[index - 1]) || !isPoint(track[index])) continue
-        const distance = distanceToSegment(click, project(track[index - 1]), project(track[index]))
-        if (distance < 10 && (!nearest || distance < nearest.distance)) nearest = { mmsi: vessel.mmsi, distance }
-      }
-    })
-    if (nearest) onSelect?.(nearest.mmsi)
-  }
+  }, [highlight, layers, result, selectedMmsi, size, slickOpacity, view])
+
+  useEffect(() => { draw() }, [draw])
 
   const zoomAt = useCallback((targetZoom, x, y) => {
     setView((current) => {
@@ -262,11 +291,32 @@ export default function MapView({ onSelect, selectedMmsi }) {
     })
   }, [size])
 
-  const handleWheel = (event) => {
-    event.preventDefault()
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return undefined
+    const onWheel = (event) => {
+      event.preventDefault()
+      const rect = canvas.getBoundingClientRect()
+      const factor = event.deltaY < 0 ? 1.2 : 1 / 1.2
+      const current = viewRef.current
+      zoomAt(current.zoom * factor, event.clientX - rect.left, event.clientY - rect.top)
+    }
+    canvas.addEventListener('wheel', onWheel, { passive: false })
+    return () => canvas.removeEventListener('wheel', onWheel)
+  }, [zoomAt])
+
+  const localPoint = (event) => {
     const rect = event.currentTarget.getBoundingClientRect()
-    const factor = event.deltaY < 0 ? 1.2 : 1 / 1.2
-    zoomAt(view.zoom * factor, event.clientX - rect.left, event.clientY - rect.top)
+    return { x: event.clientX - rect.left, y: event.clientY - rect.top }
+  }
+
+  const handleClick = (event) => {
+    if (didPanRef.current) {
+      didPanRef.current = false
+      return
+    }
+    const hit = inspect(localPoint(event), result, geometryRef.current)
+    if (hit?.vessel) onSelect?.(hit.vessel.mmsi)
   }
 
   const handlePointerDown = (event) => {
@@ -277,89 +327,179 @@ export default function MapView({ onSelect, selectedMmsi }) {
 
   const handlePointerMove = (event) => {
     const pan = panRef.current
-    if (!pan || pan.pointerId !== event.pointerId) return
-    const deltaX = event.clientX - pan.x
-    const deltaY = event.clientY - pan.y
-    if (Math.hypot(deltaX, deltaY) > 3) didPanRef.current = true
-    setView((current) => ({ ...current, panX: pan.panX + deltaX, panY: pan.panY + deltaY }))
+    if (pan && pan.pointerId === event.pointerId) {
+      const deltaX = event.clientX - pan.x
+      const deltaY = event.clientY - pan.y
+      if (Math.hypot(deltaX, deltaY) > 3) didPanRef.current = true
+      setView((current) => ({ ...current, panX: pan.panX + deltaX, panY: pan.panY + deltaY }))
+      setTooltip(null)
+      return
+    }
+    const local = localPoint(event)
+    const hit = inspect(local, result, geometryRef.current)
+    onHighlight?.(hit)
+    if (!hit) {
+      setTooltip(null)
+      return
+    }
+    setTooltip({ x: local.x, y: local.y, hit })
   }
 
   const handlePointerUp = (event) => {
     if (panRef.current?.pointerId === event.pointerId) panRef.current = null
   }
 
-  if (status === 'loading') return <section className="map-status">Loading Sentinel-1 scene…</section>
-  if (status === 'error') return <section className="map-status error"><strong>Scene unavailable</strong><span>{error}</span></section>
+  const handlePointerLeave = () => {
+    setTooltip(null)
+    onHighlight?.(null)
+  }
 
-  const primaryVessel = result.vessels.find((vessel) => vessel.mmsi === result.summary?.accused_mmsi)
-    ?? result.vessels.find((vessel) => vessel.verdict === 'suspect' || vessel.verdict === 'accused')
-  const hasTimeline = timestamp(result.drift?.origin_time_iso) || timestamp(result.scene?.time_iso)
+  const toggleLayer = (key) => setLayers((current) => ({ ...current, [key]: !current[key] }))
+
   const baseMap = size.width && size.height ? fittedMap(size, result.scene.bbox) : null
   const imageryStyle = baseMap ? {
-    left: baseMap.x, top: baseMap.y, width: baseMap.width, height: baseMap.height,
+    left: baseMap.x,
+    top: baseMap.y,
+    width: baseMap.width,
+    height: baseMap.height,
     transform: `translate(${view.panX}px, ${view.panY}px) scale(${view.zoom})`,
   } : undefined
+
+  const tooltipCopy = tooltip?.hit ? tooltipContent(tooltip.hit) : null
 
   return (
     <section className="map-view" aria-label="SAR scene map">
       <div className="map-toolbar">
-        <div><strong>{result.scene.satellite}</strong> · {result.scene.mode} · {result.scene.polarisation}</div>
-        {result.meta?.source === 'mock' && <span className="mock-badge">MOCK DATA</span>}
+        <div>
+          <strong>{result.scene.satellite}</strong>
+          <span> · {result.scene.mode} · {result.scene.polarisation}</span>
+        </div>
+        <div className="map-toolbar-status">
+          <span className="status-ok">SAR image loaded</span>
+          {result.meta?.source === 'mock' && <span className="mock-badge">Mock data</span>}
+        </div>
       </div>
       <div className="canvas-wrap" ref={containerRef}>
         <div className="scene-layers" style={imageryStyle}>
-          <img className="scene-image" src={assetUrls?.sceneUrl} alt="" />
-          <img className="scene-mask" src={assetUrls?.maskUrl} alt="" />
+          <img className="scene-image" src={assetUrls?.sceneUrl} alt="Sentinel-1 SAR scene" />
+          <img className="scene-mask" src={assetUrls?.maskUrl} alt="" style={{ opacity: maskOpacity }} />
         </div>
-        <canvas ref={canvasRef} onClick={handleClick} onWheel={handleWheel} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} onPointerCancel={handlePointerUp} aria-label="Oil slick, vessel tracks, AIS gaps, and drift visualization" />
+        <canvas
+          ref={canvasRef}
+          onClick={handleClick}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          onPointerLeave={handlePointerLeave}
+          aria-label="Oil slick, vessel tracks, AIS gaps, and drift visualization"
+        />
         <div className="map-controls" aria-label="Map controls">
           <button type="button" onClick={() => zoomAt(view.zoom * 1.3, size.width / 2, size.height / 2)} aria-label="Zoom in">+</button>
           <button type="button" onClick={() => zoomAt(view.zoom / 1.3, size.width / 2, size.height / 2)} aria-label="Zoom out">−</button>
-          <button type="button" className="reset-view" onClick={() => setView({ zoom: MIN_ZOOM, panX: 0, panY: 0 })}>Reset View</button>
+          <button type="button" className="reset-view" onClick={() => setView({ zoom: MIN_ZOOM, panX: 0, panY: 0 })}>Fit</button>
+          <span className="zoom-readout">{Math.round(view.zoom * 100)}%</span>
         </div>
+        <aside className="layers-panel" aria-label="Layer controls">
+          <h2>Layers</h2>
+          <LayerToggle label="Oil slick" color="#E0503C" checked={layers.slick} onChange={() => toggleLayer('slick')} />
+          <LayerToggle label="AIS track" color="#E0A54B" checked={layers.aisTrack} onChange={() => toggleLayer('aisTrack')} />
+          <LayerToggle label="AIS gap / blackout" color="#5CC8D4" checked={layers.aisGap} onChange={() => toggleLayer('aisGap')} />
+          <LayerToggle label="Drift path" color="#FFFFFF" checked={layers.drift} onChange={() => toggleLayer('drift')} />
+          <LayerToggle label="Dark contact" color="#5CC8D4" checked={layers.darkContact} onChange={() => toggleLayer('darkContact')} />
+          <LayerToggle label="Prediction zone" color="#7fd4de" checked={layers.prediction} onChange={() => toggleLayer('prediction')} />
+          <label className="opacity-control">
+            <span>Slick opacity</span>
+            <input type="range" min="0.05" max="0.6" step="0.01" value={slickOpacity} onChange={(event) => setSlickOpacity(Number(event.target.value))} />
+          </label>
+          <label className="opacity-control">
+            <span>Detection mask</span>
+            <input type="range" min="0" max="0.8" step="0.01" value={maskOpacity} onChange={(event) => setMaskOpacity(Number(event.target.value))} />
+          </label>
+        </aside>
+        {tooltipCopy && (
+          <div className="map-tooltip" style={{ left: tooltip.x + 14, top: tooltip.y + 14 }} role="tooltip">
+            <strong>{tooltipCopy.title}</strong>
+            {tooltipCopy.lines.map((line) => <span key={line}>{line}</span>)}
+          </div>
+        )}
       </div>
       <div className="map-footer">
-        <div className="legend"><span><i className="slick-key" />Oil slick</span><span><i className="track-key" />AIS track</span><span><i className="gap-key" />AIS gap / blackout</span><span><i className="drift-key" />Drift path</span><span><i className="dark-key" />Dark contact</span></div>
-        <span>{primaryVessel ? `${primaryVessel.name} - SUSPECTED ASSOCIATION` : 'No attribution'}</span>
-      </div>
-      <div className="intel-panels">
-        <section className="intel-panel" aria-labelledby="incident-analysis-title">
-          <h2 id="incident-analysis-title">Incident analysis</h2>
-          <dl className="metrics-grid">
-            <Metric label="Detection" value="Oil slick" tone="alert" />
-            <Metric label="Slick area" value={Number.isFinite(result.detection?.slick?.area_km2) ? `${result.detection.slick.area_km2.toFixed(1)} km²` : null} />
-            <Metric label="Detection confidence" value={percentage(result.detection?.confidence)} />
-            <Metric label="Status" value={primaryVessel ? 'Suspected association' : 'No attribution'} tone={primaryVessel ? 'alert' : ''} />
-            <Metric label="Relevant vessel" value={primaryVessel?.name} />
-            <Metric label="AIS blackout" value={Number.isFinite(primaryVessel?.ais_gap_min) ? `${primaryVessel.ais_gap_min} min` : null} />
-            <Metric label="Closest approach" value={Number.isFinite(primaryVessel?.dist_km) ? `${primaryVessel.dist_km.toFixed(2)} km` : null} />
-            <Metric label="Attribution score" value={percentage(primaryVessel?.score)} />
-          </dl>
-        </section>
-
-        {primaryVessel && <section className="intel-panel attribution-panel" aria-labelledby="attribution-title">
-          <h2 id="attribution-title">Vessel attribution</h2>
-          <div className="vessel-heading"><strong>{primaryVessel.name}</strong><span>{percentage(primaryVessel.score)} correlation score</span></div>
-          <p className="association-note">Suspected association based on satellite detection and AIS correlation; this is not a determination of cause.</p>
-          <ul className="evidence-list">
-            {Number.isFinite(primaryVessel.dist_km) && <li>Spatial proximity: {primaryVessel.dist_km.toFixed(2)} km closest approach</li>}
-            {primaryVessel.ais_gap_min > 0 && <li>AIS blackout detected: {primaryVessel.ais_gap_min} min</li>}
-            {Number.isFinite(primaryVessel.temporality) && <li>Temporal correlation: {percentage(primaryVessel.temporality)}</li>}
-            {Number.isFinite(primaryVessel.parity) && <li>Track/slick parity: {percentage(primaryVessel.parity)}</li>}
-            {result.drift?.path?.length > 1 && <li>Back-advection path available for review</li>}
-          </ul>
-        </section>}
-
-        {hasTimeline && <section className="intel-panel timeline-panel" aria-labelledby="timeline-title">
-          <h2 id="timeline-title">Timeline</h2>
-          <ol className="timeline">
-            {timestamp(result.drift?.origin_time_iso) && <li><time>{timestamp(result.drift.origin_time_iso)}</time><span>Back-advection origin</span></li>}
-            {timestamp(result.scene?.time_iso) && <li><time>{timestamp(result.scene.time_iso)}</time><span>Satellite detection</span></li>}
-            {primaryVessel && <li><time>Result</time><span>Suspected association flagged</span></li>}
-          </ol>
-          {primaryVessel?.ais_gap_min > 0 && <p className="timeline-note">AIS gap duration is available, but individual AIS track timestamps are not present in this result.</p>}
-        </section>}
+        <div className="legend">
+          <span><i className="slick-key" />Oil slick</span>
+          <span><i className="track-key" />AIS track</span>
+          <span><i className="gap-key" />AIS gap / blackout</span>
+          <span><i className="drift-key" />Drift path</span>
+          <span><i className="dark-key" />Dark contact</span>
+        </div>
+        <span>Drag to pan · Scroll to zoom</span>
       </div>
     </section>
   )
+}
+
+function LayerToggle({ label, color, checked, onChange }) {
+  return (
+    <label className="layer-toggle">
+      <input type="checkbox" checked={checked} onChange={onChange} />
+      <i style={{ background: color }} />
+      <span>{label}</span>
+    </label>
+  )
+}
+
+function tooltipContent(hit) {
+  if (hit.kind === 'slick') {
+    return {
+      title: 'Oil slick',
+      lines: [
+        hit.slick.area_km2 != null ? `Area ${hit.slick.area_km2.toFixed(1)} km²` : null,
+        hit.slick.length_km != null ? `Length ${hit.slick.length_km.toFixed(1)} km` : null,
+      ].filter(Boolean),
+    }
+  }
+  if (hit.kind === 'vessel') {
+    return {
+      title: hit.vessel.name || `MMSI ${hit.vessel.mmsi}`,
+      lines: [
+        hit.vessel.type ? `Type ${hit.vessel.type}` : null,
+        `MMSI ${hit.vessel.mmsi}`,
+        percentage(hit.vessel.score) ? `Score ${percentage(hit.vessel.score)}` : null,
+        formatKm(hit.vessel.dist_km) ? `Proximity ${formatKm(hit.vessel.dist_km)}` : null,
+      ].filter(Boolean),
+    }
+  }
+  if (hit.kind === 'gap') {
+    const gap = firstGap(hit.vessel.track)
+    return {
+      title: 'AIS blackout',
+      lines: [
+        `${hit.vessel.name || hit.vessel.mmsi}`,
+        Number.isFinite(hit.vessel.ais_gap_min) ? `Duration ${hit.vessel.ais_gap_min} min` : null,
+        gap?.before ? `Last report ${formatCoord(gap.before[0], gap.before[1])}` : null,
+        gap?.after ? `Resume ${formatCoord(gap.after[0], gap.after[1])}` : null,
+      ].filter(Boolean),
+    }
+  }
+  if (hit.kind === 'dark') {
+    return {
+      title: 'Dark contact',
+      lines: [
+        hit.contact.id,
+        formatCoord(hit.contact.lon, hit.contact.lat),
+        Number.isFinite(hit.contact.len_px) ? `${hit.contact.len_px} px signature` : null,
+      ].filter(Boolean),
+    }
+  }
+  if (hit.kind === 'prediction') {
+    return {
+      title: 'Prediction zone',
+      lines: [
+        hit.drift.method || 'Back-advection',
+        timestamp(hit.drift.origin_time_iso),
+        formatKm(hit.drift.uncertainty_km) ? `Uncertainty ${formatKm(hit.drift.uncertainty_km)}` : null,
+      ].filter(Boolean),
+    }
+  }
+  return { title: 'Scene', lines: [] }
 }

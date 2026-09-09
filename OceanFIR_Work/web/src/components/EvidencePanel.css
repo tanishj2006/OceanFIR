@@ -1,0 +1,246 @@
+.evidence-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.evidence-panel h2 {
+  margin: 0 0 10px;
+  color: #e6f2f5;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: #5cc8d4;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+
+.glance-card,
+.metrics-card,
+.timeline-card,
+.similar-card,
+.detail-card {
+  padding: 16px;
+  border: 1px solid #23414b;
+  border-radius: 10px;
+  background: #0b171d;
+  transition: border-color .18s ease, box-shadow .18s ease;
+}
+
+.glance-card h2 {
+  margin: 0;
+  font-size: 22px;
+  letter-spacing: .02em;
+  text-transform: none;
+}
+
+.glance-type,
+.glance-status,
+.glance-note {
+  margin: 6px 0 0;
+  color: #91a8b1;
+  font-size: 13px;
+}
+
+.glance-status {
+  color: #f08470;
+  font-weight: 650;
+}
+
+.glance-stats {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.glance-stats li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: #c7d6da;
+  font-size: 13px;
+}
+
+.glance-stats strong { color: #e6f2f5; }
+
+.glance-card.is-hot,
+.metric-bar.is-hot,
+.timeline-node.is-hot .timeline-dot {
+  border-color: #5cc8d4;
+  box-shadow: 0 0 0 1px rgba(92, 200, 212, 0.25);
+}
+
+.timeline-track {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 18px;
+  padding-top: 18px;
+}
+
+.timeline-track::before {
+  content: '';
+  position: absolute;
+  top: 22px;
+  right: 8%;
+  left: 8%;
+  height: 2px;
+  background: #2a4a54;
+}
+
+.timeline-blackout {
+  position: absolute;
+  top: 18px;
+  left: 18%;
+  width: 28%;
+  height: 10px;
+  border-radius: 99px;
+  background: rgba(92, 200, 212, 0.28);
+  border: 1px solid rgba(92, 200, 212, 0.7);
+}
+
+.timeline-node { position: relative; z-index: 1; text-align: center; }
+
+.timeline-dot {
+  width: 14px;
+  height: 14px;
+  margin: 0 auto;
+  padding: 0;
+  border: 2px solid #5cc8d4;
+  border-radius: 50%;
+  background: #0b171d;
+  cursor: default;
+}
+
+.timeline-node.blackout .timeline-dot { border-color: #5cc8d4; background: #5cc8d4; }
+.timeline-node.sar .timeline-dot { border-color: #e0503c; }
+.timeline-node.drift .timeline-dot { border-color: #e0a54b; }
+
+.timeline-label {
+  display: block;
+  margin-top: 10px;
+  color: #c7d6da;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.timeline-tip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  z-index: 6;
+  width: 190px;
+  padding: 8px 10px;
+  border: 1px solid #34515b;
+  border-radius: 6px;
+  background: #081014;
+  color: #c7d6da;
+  font-size: 11px;
+  line-height: 1.4;
+  text-align: left;
+  transform: translateX(-50%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .15s ease;
+}
+
+.timeline-tip strong,
+.timeline-tip span { display: block; }
+.timeline-tip strong { margin-bottom: 4px; color: #e6f2f5; }
+
+.timeline-node:hover .timeline-tip,
+.timeline-dot:focus-visible + .timeline-tip {
+  opacity: 1;
+}
+
+.timeline-caption {
+  margin: 12px 0 0;
+  color: #7f969f;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.metric-bar { margin-bottom: 12px; }
+.metric-bar-head {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  color: #c7d6da;
+  font-size: 12px;
+}
+
+.metric-bar-track {
+  height: 7px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: #1b2c33;
+}
+
+.metric-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width .2s ease;
+}
+
+.tone-amber { background: #e0a54b; }
+.tone-cyan { background: #5cc8d4; }
+.tone-green { background: #7cc694; }
+
+.detail-stack { display: grid; gap: 8px; }
+
+.detail-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.detail-card summary {
+  padding: 13px 16px;
+  color: #e6f2f5;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  list-style: none;
+}
+
+.detail-card summary::-webkit-details-marker { display: none; }
+
+.detail-card summary::after {
+  float: right;
+  content: '+';
+  color: #5cc8d4;
+}
+
+.detail-card[open] summary::after { content: '–'; }
+
+.detail-body {
+  display: grid;
+  gap: 6px;
+  padding: 0 16px 14px;
+  color: #c7d6da;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.detail-body p { margin: 0; }
+
+.similar-card p {
+  margin: 0;
+  color: #91a8b1;
+  font-size: 13px;
+}
