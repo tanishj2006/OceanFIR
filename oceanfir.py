@@ -15,6 +15,7 @@ legitimate baseline. Swap in the U-Net later by replacing detect_slick().
 """
 import argparse, json, math, sys, warnings
 warnings.filterwarnings("ignore")
+import subprocess
 from datetime import datetime, timedelta
 
 import numpy as np
@@ -97,7 +98,7 @@ def segment_classical(im):
     job the U-Net exists to do."""
     sm = ndimage.gaussian_filter(im, 2.0)
     bg = ndimage.gaussian_filter(im, 40.0)       # slowly varying sea background
-    anom = bg - sm                                # positive where darker than background
+    anom = bg - sm                               # positive where darker than background
     thr = anom.mean() + 1.6 * anom.std()
     mask = anom > max(thr, 0.012)
 
@@ -136,7 +137,7 @@ def mask_to_slick(mask, bbox, orig_size, min_km2=1.0, land=None,
             continue
         if land is not None and land[tuple(np.array(r.coords).T)].mean() > 0.02:
             continue
-        r0, c0, r1, c1 = r.bbox                   # touching the scene edge?
+        r0, c0, r1, c1 = r.bbox                  # touching the scene edge?
         if r0 <= 1 or c0 <= 1 or r1 >= H - 1 or c1 >= W - 1:
             continue                               # cut coastline, not a slick
         elong = r.axis_major_length / max(r.axis_minor_length, 1e-6)
@@ -416,6 +417,12 @@ def main():
     with open(a.out, "w") as f:
         json.dump(doc, f, indent=1)
     print(f"\nwrote {a.out} and {mask_png}  ·  open index.html to view")
+
+    # ---- pipeline output validation
+    val_res = subprocess.run([sys.executable, "validate.py", a.out])
+    if val_res.returncode != 0:
+        raise ValueError(f"Validation failed for pipeline output {a.out}!")
+    print("Pipeline output successfully validated.")
 
 
 if __name__ == "__main__":
