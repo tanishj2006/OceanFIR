@@ -18,7 +18,9 @@ pipeline is ready it drops in and nothing else changes.
     "version": "2.0",
     "source": "pipeline" | "mock",        // mock data is ALWAYS labelled
     "generated_utc": "2026-09-08T18:40:00Z",
-    "detector": "classical" | "unet",
+    "detector": "classical" | "unet-resnet34",  // SAME spelling as
+                                 //   detection.method below. Two spellings for
+                                 //   one thing is how fields drift apart.
     "runtime_s": 2.4
   },
 
@@ -34,7 +36,9 @@ pipeline is ready it drops in and nothing else changes.
                                 //   U-Net's mask. Read this field.
     "satellite": "Sentinel-1A",
     "mode": "IW GRDH",
-    "polarisation": "VV"
+    "polarisation": "VV+VH"       // IW GRDH 1SDV is dual-pol and the U-Net
+                                  //   reads VH, so plain "VV" misdescribes
+                                  //   what we actually process
   },
 
   "detection": {
@@ -170,6 +174,26 @@ requests changes. Do not both edit them.
 ---
 
 ## 4. Changelog
+
+**9 Sept — the pipeline now emits v2.0 directly. No schema change.**
+`oceanfir.py` used to write a flat v1 document that `api.py` lifted into v2 on
+the way out, so the file on disk never matched the schema everyone validates
+against. It now writes the contract shape itself. The adapter in `api.py`
+short-circuits on `meta.version == "2.0"` and stays where it is, harmless.
+Two values were tightened at the same time: `meta.detector` now uses the same
+spelling as `detection.method` (`unet-resnet34`, not `unet`), and
+`scene.polarisation` is `VV+VH`. `scene.image` is now a bare filename — it used
+to be whatever path the pipeline was invoked with, which 404s in the UI.
+`summary.n_scored / n_suspect / n_cleared` count the WHOLE scored population;
+`vessels[]` is truncated by `--top`, so they are `>=` its length, never equal.
+
+**9 Sept — two wrong values fixed in `mock/data.json`.**
+`detection.lookalike_prob` was `0.12`. It is now `null`, as this file has always
+said it must be. The slick ring was 19 points against a stated 20-60 and has
+been densified to 21 — same shape. And the accused vessel cleared the runner-up
+by 0.076, under the 0.08 `MIN_MARGIN` the real scorer enforces, so the fixture
+showed an accusation the pipeline would itself have refused; the runner-up now
+scores 0.715. Nothing built against the mock needs rework.
 
 **9 Sept — scoring tuned from measurement, no schema break.**
 Field shapes are unchanged; only values moved. `proximity` is now an

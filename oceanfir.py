@@ -13,7 +13,7 @@ writes data.json for the UI plus mask.png for slides.
 Detection is classical dark-spot segmentation: real, unsupervised, and a
 legitimate baseline. Swap in the U-Net later by replacing detect_slick().
 """
-import argparse, json, math, sys, warnings
+import argparse, json, math, os, subprocess, sys, time, warnings
 warnings.filterwarnings("ignore")
 from datetime import datetime, timedelta
 
@@ -363,6 +363,7 @@ def main():
                         "the other one's mask.")
     a = p.parse_args()
 
+    t_start = time.time()
     t0 = pd.Timestamp(datetime.fromisoformat(a.time))
 
     print(f"1/3  detecting slick  [{a.detector}] …")
@@ -446,18 +447,79 @@ def main():
         print(f"     {v['score']:.2f}  {v['name']:<22} {v['verdict']:<8} "
               f"{v['dist_km']:>6.1f} km  gap {v['ais_gap_min']:>3} min")
 
-    doc = {"scene": {"id": a.sar.rsplit("/", 1)[-1].rsplit(".", 1)[0],
-                     "time": t0.strftime("%Y-%m-%d %H:%M UTC"),
-                     "bbox": a.bbox, "image": a.sar,
-                     "mask": mask_png.rsplit("/", 1)[-1]},
-           "detector": a.detector,
-           "slick": slick,
-           "drift": drift,
-           "scored_at": a.score_at,
-           "vessels": vessels[:a.top]}
+    # ---- CONTRACT.md v2.0, emitted directly.
+    # Until now the pipeline wrote a flat v1 document and api.py lifted it into
+    # v2 on the way out, which meant the file on disk never matched the schema
+    # every other lane validates against. The adapter in api.py short-circuits
+    # on meta.version == "2.0", so it stays harmless where it is.
+    shown = vessels[:a.top]
+    method = slick.get("method") or ("unet-resnet34" if a.detector == "unet"
+                                     else "classical")
+    acc = next((v for v in shown if v["verdict"] == "accused"), None)
+
+    # Counts describe the WHOLE scored population, not the truncated list --
+    # "8.6 M rows -> 239 vessels scored" is the number that goes on a slide.
+    n_suspect = sum(1 for v in vessels if v["verdict"] == "suspect")
+    n_cleared = sum(1 for v in vessels if v["verdict"] == "cleared")
+
+    doc = {
+        "meta": {"version": "2.0",
+                 "source": "pipeline",
+                 "generated_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                 "detector": method,
+                 "runtime_s": round(time.time() - t_start, 1)},
+        "scene": {"id": a.sar.rsplit("/", 1)[-1].rsplit(".", 1)[0],
+                  "time": t0.strftime("%Y-%m-%d %H:%M UTC"),
+                  "time_iso": t0.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                  "bbox": a.bbox,
+                  # basename only: the UI resolves it under /static/{scene}/,
+                  # so writing the path we happened to be invoked with 404s
+                  "image": a.sar.rsplit("/", 1)[-1],
+                  "mask": mask_png.rsplit("/", 1)[-1],
+                  "satellite": "Sentinel-1A",
+                  "mode": "IW GRDH",
+                  # 1SDV is dual-pol and the U-Net reads VH, so claiming plain
+                  # "VV" would misdescribe what we actually process
+                  "polarisation": "VV+VH"},
+        "detection": {"method": method,
+                      "confidence": slick.get("confidence"),
+                      "lookalike_prob": None,
+                      "slick": {"polygon": slick["polygon"],
+                                "area_km2": slick["area_km2"],
+                                "length_km": slick["length_km"],
+                                "head": slick["head"],
+                                "centroid": slick["centroid"],
+                                "coverage_pct": slick["coverage_pct"],
+                                "age_hours_est": None}},
+        "drift": drift,
+        "vessels": shown,
+        "dark_contacts": [],
+        "summary": {"verdict": "accused" if acc else "no_attribution",
+                    "accused_mmsi": acc["mmsi"] if acc else None,
+                    "threshold": 0.45,
+                    "n_scored": len(vessels),
+                    "n_suspect": n_suspect,
+                    "n_cleared": n_cleared,
+                    "note": (f"{acc['name']} accused" if acc else
+                             "No vessel meets the attribution threshold.")},
+        "scored_at": a.score_at,
+    }
     with open(a.out, "w") as f:
         json.dump(doc, f, indent=1)
     print(f"\nwrote {a.out} and {mask_png}  ·  open index.html to view")
+
+    # Lane F's validator, if it is on this branch. Deliberately NON-FATAL and
+    # resolved against this file's directory: /api/analyze runs the pipeline
+    # with cwd set to the scene folder, so a relative "validate.py" is not
+    # found there, and a hard raise would take the whole demo down over a
+    # schema nit after the result was already written.
+    v = os.path.join(os.path.dirname(os.path.abspath(__file__)), "validate.py")
+    if os.path.exists(v):
+        if subprocess.run([sys.executable, v, a.out]).returncode == 0:
+            print("contract v2.0: PASS")
+        else:
+            print("contract v2.0: FAIL — see the report above. Result was still "
+                  "written; fix the schema before the demo.", file=sys.stderr)
 
 
 if __name__ == "__main__":

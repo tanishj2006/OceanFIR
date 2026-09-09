@@ -25,7 +25,7 @@
  "detection": {
   "method": "classical",
   "confidence": 0.87,
-  "lookalike_prob": 0.12,
+  "lookalike_prob": null,
   "slick": {
    "polygon": [
     [
@@ -57,6 +57,10 @@
      28.9706
     ],
     [
+     -90.20561,
+     28.9506
+    ],
+    [
      -90.21524,
      28.9306
     ],
@@ -71,6 +75,10 @@
     [
      -90.24356,
      28.93452
+    ],
+    [
+     -90.23393,
+     28.95452
     ],
     [
      -90.2243,
@@ -440,11 +448,11 @@
    "name": "PERSISTENCE LAB",
    "type": "Other",
    "len_m": 44,
-   "score": 0.725,
+   "score": 0.715,
    "proximity": 0.778,
    "parity": 0.897,
    "temporality": 0.959,
-   "silence": 0.546,
+   "silence": 0.522,
    "ais_gap_min": 57,
    "dist_km": 5.54,
    "dark": true,
