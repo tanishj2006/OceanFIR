@@ -1,8 +1,20 @@
 import { useEffect, useState } from 'react'
 import MapView from './components/MapView'
 import EvidencePanel from './components/EvidencePanel'
-import { MOCK_RESULT_URL, evidenceUrl, sceneAssetUrl } from './api'
+import VesselTable from './components/VesselTable'
+import ScoreBreakdown from './components/ScoreBreakdown'
+import ExonerationRecord from './components/ExonerationRecord'
+import { evidenceUrl, resultUrl, sceneAssetUrl, sceneIdFromUrl } from './api'
 import { buildReportText, loadImage, primaryVessel, validateResult } from './sceneUtils'
+import './components/AttributionDeck.css'
+
+const SCENE_ID = sceneIdFromUrl('mock')
+
+function topScorer(result) {
+  const vessels = result?.vessels ?? []
+  if (!vessels.length) return null
+  return vessels.reduce((best, v) => ((v.score ?? -1) > (best.score ?? -1) ? v : best))
+}
 
 export default function App() {
   const [result, setResult] = useState(null)
@@ -18,16 +30,22 @@ export default function App() {
     async function fetchScene() {
       try {
         setStatus('loading')
-        const response = await fetch(MOCK_RESULT_URL)
+        const response = await fetch(resultUrl(SCENE_ID))
         if (!response.ok) throw new Error(`Scene request failed (${response.status}).`)
         const sceneResult = validateResult(await response.json())
-        const sceneUrl = sceneAssetUrl(sceneResult, sceneResult.scene.image)
-        const maskUrl = sceneAssetUrl(sceneResult, sceneResult.scene.mask)
+        // pass SCENE_ID: assets live under the scene FOLDER, which is not the
+        // same string as result.scene.id on a real pipeline run
+        const sceneUrl = sceneAssetUrl(sceneResult, sceneResult.scene.image, SCENE_ID)
+        const maskUrl = sceneAssetUrl(sceneResult, sceneResult.scene.mask, SCENE_ID)
         await Promise.all([loadImage(sceneUrl), loadImage(maskUrl)])
         if (cancelled) return
         setAssetUrls({ sceneUrl, maskUrl })
         setResult(sceneResult)
-        setSelectedMmsi(primaryVessel(sceneResult)?.mmsi ?? null)
+        // On a no_attribution scene there is no accused or suspect vessel, so
+        // primaryVessel() returns null and the score panel opens empty. Fall
+        // back to the highest scorer: the point of the panel there is to show
+        // WHY the best candidate still did not clear the bar.
+        setSelectedMmsi(primaryVessel(sceneResult)?.mmsi ?? topScorer(sceneResult)?.mmsi ?? null)
         setStatus('ready')
       } catch (caught) {
         if (!cancelled) {
@@ -48,7 +66,7 @@ export default function App() {
 
   async function generateReport() {
     if (!result) return
-    const sceneId = result.meta?.source === 'mock' ? 'mock' : result.scene.id
+    const sceneId = result.meta?.source === 'mock' ? 'mock' : SCENE_ID
     try {
       const response = await fetch(evidenceUrl(sceneId))
       if (response.ok) {
@@ -91,6 +109,11 @@ export default function App() {
     }
   }
 
+  const vessels = result?.vessels ?? []
+  const selectedVessel = vessels.find((v) => v.mmsi === selectedMmsi) ?? null
+  const summary = result?.summary ?? null
+  const declined = summary?.verdict === 'no_attribution'
+
   return (
     <div className="app-shell">
       <header className="app-header">
@@ -116,17 +139,49 @@ export default function App() {
       {status === 'loading' && <section className="map-status">Loading Sentinel-1 scene…</section>}
       {status === 'error' && <section className="map-status error"><strong>Scene unavailable</strong><span>{error}</span></section>}
       {status === 'ready' && result && (
-        <div className="workspace">
-          <MapView
-            result={result}
-            assetUrls={assetUrls}
-            selectedMmsi={selectedMmsi}
-            onSelect={setSelectedMmsi}
-            highlight={highlight}
-            onHighlight={setHighlight}
-          />
-          <EvidencePanel result={result} highlight={highlight} selectedMmsi={selectedMmsi} />
-        </div>
+        <>
+          {/* A declined attribution is a RESULT, not an error. On the real Gulf
+              scene this is what the system returns, so it needs to look like a
+              deliberate finding rather than a blank panel. */}
+          {declined && (
+            <section className="verdict-banner verdict-declined" role="status">
+              <strong>No attribution</strong>
+              <span>
+                {summary?.note || 'No vessel meets the attribution threshold.'}
+                {' '}Scored {summary?.n_scored ?? vessels.length} vessels against a
+                threshold of {summary?.threshold ?? 0.45}; the evidence does not
+                separate a single vessel, so the system declines to name one.
+              </span>
+            </section>
+          )}
+
+          <div className="workspace">
+            <MapView
+              result={result}
+              assetUrls={assetUrls}
+              selectedMmsi={selectedMmsi}
+              onSelect={setSelectedMmsi}
+              highlight={highlight}
+              onHighlight={setHighlight}
+            />
+            <EvidencePanel result={result} highlight={highlight} selectedMmsi={selectedMmsi} />
+          </div>
+
+          <section className="attribution-deck">
+            <div className="attribution-row">
+              <VesselTable
+                vessels={vessels}
+                onSelect={setSelectedMmsi}
+                selectedMmsi={selectedMmsi}
+              />
+              <ScoreBreakdown
+                vessel={selectedVessel}
+                threshold={summary?.threshold ?? 0.45}
+              />
+            </div>
+            <ExonerationRecord vessels={vessels} />
+          </section>
+        </>
       )}
       {notice && <div className="notice" role="status">{notice}</div>}
     </div>

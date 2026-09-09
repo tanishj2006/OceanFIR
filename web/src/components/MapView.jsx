@@ -100,9 +100,22 @@ export default function MapView({
   useEffect(() => {
     const element = containerRef.current
     if (!element) return undefined
+    const apply = (width, height) => setSize({
+      width: Math.floor(width),
+      height: Math.floor(height),
+      dpr: Math.min(window.devicePixelRatio || 1, 2),
+    })
+    // Measure once on mount. The observer's first notification can be dropped
+    // by the browser when layout is still settling (the evidence column is
+    // still growing as its content loads), and without a fallback measurement
+    // size stays 0x0 -- the canvas keeps its default 300x150 and the scene
+    // imagery renders at zero width, i.e. a blank map until something else
+    // forces a resize.
+    const rect = element.getBoundingClientRect()
+    if (rect.width && rect.height) apply(rect.width, rect.height)
     const observer = new ResizeObserver(([entry]) => {
       const { width, height } = entry.contentRect
-      setSize({ width: Math.floor(width), height: Math.floor(height), dpr: Math.min(window.devicePixelRatio || 1, 2) })
+      apply(width, height)
     })
     observer.observe(element)
     return () => observer.disconnect()
