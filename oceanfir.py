@@ -326,19 +326,29 @@ def main():
                    help="unet only: probability above which a pixel counts as oil")
     p.add_argument("--top", type=int, default=14)
     p.add_argument("--out", default="data.json")
+    p.add_argument("--mask", default=None,
+                   help="where to write the overlay PNG. Defaults to the --out "
+                        "name with a .png extension, so two detectors writing "
+                        "into one folder cannot leave a data.json paired with "
+                        "the other one's mask.")
     a = p.parse_args()
 
     t0 = pd.Timestamp(datetime.fromisoformat(a.time))
 
     print(f"1/3  detecting slick  [{a.detector}] …")
+    mask_png = a.mask or (a.out.rsplit(".", 1)[0] + ".png")
     if a.detector == "unet":
         from unet import detect_slick_unet          # imported late: torch is optional
         slick = detect_slick_unet(a.sar, a.bbox, a.min_km2,
-                                  min_oil_prob=a.min_oil_prob)
+                                  min_oil_prob=a.min_oil_prob,
+                                  mask_png=mask_png)
         print(f"     confidence {slick.get('confidence')}  "
               f"look-alike {slick.get('lookalike_prob')}")
     else:
-        slick = detect_slick(a.sar, a.bbox, a.min_km2)
+        im, orig = load_scene(a.sar)
+        m, land = segment_classical(im)
+        slick = mask_to_slick(m, a.bbox, orig, a.min_km2, land=land,
+                              mask_png=mask_png)
     print(f"     area {slick['area_km2']} km²  length {slick['length_km']} km  "
           f"head {slick['head']}  ({slick['coverage_pct']}% of scene)")
 
@@ -354,13 +364,14 @@ def main():
 
     doc = {"scene": {"id": a.sar.rsplit("/", 1)[-1].rsplit(".", 1)[0],
                      "time": t0.strftime("%Y-%m-%d %H:%M UTC"),
-                     "bbox": a.bbox, "image": a.sar, "mask": "mask.png"},
+                     "bbox": a.bbox, "image": a.sar,
+                     "mask": mask_png.rsplit("/", 1)[-1]},
            "detector": a.detector,
            "slick": slick,
            "vessels": vessels[:a.top]}
     with open(a.out, "w") as f:
         json.dump(doc, f, indent=1)
-    print(f"\nwrote {a.out} and mask.png  ·  open index.html to view")
+    print(f"\nwrote {a.out} and {mask_png}  ·  open index.html to view")
 
 
 if __name__ == "__main__":
