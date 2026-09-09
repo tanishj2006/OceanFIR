@@ -324,6 +324,10 @@ def main():
                         "notebooks/train_unet.ipynb")
     p.add_argument("--min-oil-prob", type=float, default=0.5,
                    help="unet only: probability above which a pixel counts as oil")
+    p.add_argument("--drift-hours", type=float, default=12.0,
+                   help="how far back to hindcast the slick origin (0 disables)")
+    p.add_argument("--u-ms", type=float, default=-0.25, help="surface current east, m/s")
+    p.add_argument("--v-ms", type=float, default=-0.12, help="surface current north, m/s")
     p.add_argument("--top", type=int, default=14)
     p.add_argument("--out", default="data.json")
     p.add_argument("--mask", default=None,
@@ -352,6 +356,25 @@ def main():
     print(f"     area {slick['area_km2']} km²  length {slick['length_km']} km  "
           f"head {slick['head']}  ({slick['coverage_pct']}% of scene)")
 
+    # ---- reverse drift: where was this slick when it was discharged?
+    # Optional by design. drift.py belongs to another lane, so a missing or
+    # broken module leaves drift null and the pipeline still produces a result
+    # -- the contract allows null and the UI handles it.
+    drift = None
+    if a.drift_hours > 0:
+        try:
+            from drift import back_advect
+            drift = back_advect(head=slick["head"],
+                                t0_iso=t0.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                                hours=a.drift_hours, u_ms=a.u_ms, v_ms=a.v_ms)
+            print(f"     drift origin {drift['origin']}  "
+                  f"+/- {drift['uncertainty_km']} km  "
+                  f"({len(drift['path'])} steps back to {drift['origin_time_iso']})")
+        except ImportError:
+            print("     drift.py not present yet — drift stays null")
+        except Exception as e:
+            print(f"     drift failed ({type(e).__name__}: {e}) — drift stays null")
+
     print("2/3  loading AIS …")
     df = load_ais(a.ais, a.bbox, t0, a.window)
 
@@ -368,6 +391,7 @@ def main():
                      "mask": mask_png.rsplit("/", 1)[-1]},
            "detector": a.detector,
            "slick": slick,
+           "drift": drift,
            "vessels": vessels[:a.top]}
     with open(a.out, "w") as f:
         json.dump(doc, f, indent=1)
