@@ -91,13 +91,13 @@ def health():
 def scenes():
     out = [{"id": "mock", "name": "Mississippi Delta (mock)",
             "time_iso": "2023-06-20T00:02:34Z",
-            "thumb": "/static/mock/sar.png",
+            "thumb": "/static/mock/sar_sea.png",
             "has_result": (ROOT / "mock" / "data.json").exists()}]
     for d in sorted(SCENES.iterdir()) if SCENES.exists() else []:
         if d.is_dir():
             out.append({"id": d.name, "name": d.name,
                         "time_iso": None,
-                        "thumb": f"/static/{d.name}/sar.png",
+                        "thumb": f"/static/{d.name}/sar_sea.png",
                         "has_result": (d / "data.json").exists()})
     return out
 
@@ -165,7 +165,7 @@ def err(request, exc):
     return JSONResponse({"error": exc.detail}, status_code=exc.status_code)
 
 
-# mock assets live beside the repo root; real scenes under scenes/
+# Mock assets live in ./mock; real scene assets live under ./scenes.
 (ROOT / "mock").mkdir(exist_ok=True)
-app.mount("/static/mock", StaticFiles(directory=str(ROOT)), name="mockstatic")
+app.mount("/static/mock", StaticFiles(directory=str(ROOT / "mock")), name="mockstatic")
 app.mount("/static", StaticFiles(directory=str(SCENES)), name="static")

@@ -1,0 +1,55 @@
+/* Layout for the attribution deck and the declined-verdict banner.
+   Deliberately a separate file: MapView.css, EvidencePanel.css and index.css
+   belong to Lane B and VesselAttribution.css to Lane C, so the wiring brings
+   its own styles and touches neither. */
+
+.verdict-banner {
+  margin: 0 24px 16px;
+  padding: 14px 18px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border: 1px solid rgba(120, 180, 210, 0.35);
+  background: rgba(20, 40, 55, 0.6);
+}
+
+.verdict-banner strong {
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7fd4e8;
+}
+
+.verdict-banner span {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: rgba(226, 238, 242, 0.78);
+  max-width: 95ch;
+}
+
+/* declining to accuse is a finding, so it reads as information, not as an
+   error state -- no red, no warning iconography */
+.verdict-declined {
+  border-left: 3px solid #4fd1db;
+}
+
+.attribution-deck {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 18px 24px 32px;
+}
+
+.attribution-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .attribution-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
