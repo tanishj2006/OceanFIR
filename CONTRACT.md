@@ -18,7 +18,7 @@ pipeline is ready it drops in and nothing else changes.
     "version": "2.0",
     "source": "pipeline" | "mock",        // mock data is ALWAYS labelled
     "generated_utc": "2026-09-08T18:40:00Z",
-    "detector": "classical" | "unet-resnet34",
+    "detector": "classical" | "unet",
     "runtime_s": 2.4
   },
 
@@ -28,7 +28,10 @@ pipeline is ready it drops in and nothing else changes.
     "time_iso": "2023-06-20T00:02:34Z",
     "bbox": [lonMin, latMin, lonMax, latMax],   // ALWAYS this order
     "image": "sar_sea.png",                      // relative to /static/{scene_id}/
-    "mask":  "mask.png",
+    "mask":  "data_unet.png",   // FILENAME VARIES -- never hardcode "mask.png".
+                                //   Each result names its own overlay so a
+                                //   classical result cannot be drawn with the
+                                //   U-Net's mask. Read this field.
     "satellite": "Sentinel-1A",
     "mode": "IW GRDH",
     "polarisation": "VV"
@@ -36,8 +39,15 @@ pipeline is ready it drops in and nothing else changes.
 
   "detection": {
     "method": "classical" | "unet-resnet34",
-    "confidence": 0.87,          // 0..1  model confidence this is oil
-    "lookalike_prob": 0.12,      // 0..1  probability it is a look-alike
+    "confidence": 0.663,         // 0..1 mean oil probability over the region.
+                                 //   null on the classical path -- an
+                                 //   unsupervised threshold has no confidence.
+    "lookalike_prob": null,      // ALWAYS null. The dataset annotates only oil
+                                 //   pixels, so there is no look-alike class to
+                                 //   take a probability from. The look-alike
+                                 //   number is a scene-level false-alarm rate in
+                                 //   results/RESULTS.md. Render "not available",
+                                 //   never 0%.
     "slick": {
       "polygon": [[lon, lat], ...],        // closed ring, lon/lat, 20-60 points
       "area_km2": 70.8,
@@ -106,8 +116,9 @@ pipeline is ready it drops in and nothing else changes.
    single most important pixel in the whole product. Do not skip it.
 3. `reason` is non-null **only** for `verdict == "cleared"`. It is a computed
    sentence, never hardcoded.
-4. `drift` may be `null`. `dark_contacts` may be `[]`. `age_hours_est` may be
-   `null`. The UI must render correctly in all three cases — build for that
+4. `drift` may be `null`. `dark_contacts` may be `[]`. `age_hours_est`,
+   `confidence` and `lookalike_prob` may be `null`. The UI must render
+   correctly in all of these cases — build for that
    from hour one, not as a patch later.
 5. Every score field is `0..1`. Never a percentage, never 0..100.
 6. `summary.verdict == "no_attribution"` is a **legitimate, correct output**,
@@ -154,3 +165,24 @@ file they do not own. If you need a change in someone else's file, message them.
 
 `web/src/App.jsx` and `web/src/api.js` are shared — Lane B owns them, Lane C
 requests changes. Do not both edit them.
+
+
+---
+
+## 4. Changelog
+
+**9 Sept — scoring tuned from measurement, no schema break.**
+Field shapes are unchanged; only values moved. `proximity` is now an
+exponential falloff with a 2.5 km scale instead of linear over 25 km, and the
+AIS gap scale went 40 km to 10 km. Both were measured with `inject.py`, not
+guessed — see `results/RESULTS.md`. Practical effect: **scores are lower across
+the board.** The top vessel on the real scene scores 0.58, not 0.9. Do not
+hardcode UI colour thresholds that assume high scores.
+
+**9 Sept — three clarifications, marked inline above.**
+`scene.mask` is a filename that varies per result. `detection.confidence` is
+real on the U-Net path and null on the classical one. `detection.lookalike_prob`
+is always null, and why.
+
+`mock/data.json` is unchanged by any of this. Nothing built against it needs
+rework.
