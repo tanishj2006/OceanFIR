@@ -5,11 +5,23 @@ unet.py — the learned detector. A drop-in for segment_classical().
 The classical detector finds dark patches. It cannot tell oil from a look-alike,
 because low wind, biogenic film and rain cells are dark in SAR too — that is the
 "Radar Look Alikes" risk on the feasibility slide. This model is trained on
-labelled SAR with a separate look-alike class, so it can say which kind of dark
-patch it is looking at and report how confident it is.
+labelled SAR, so it reports a real per-pixel oil probability rather than a
+threshold on darkness.
 
-Three classes, not two, and that is the point:
-    0 sea   1 oil   2 look-alike
+Two classes: 0 sea, 1 oil.
+
+It was designed for three, with an explicit look-alike class, because that is
+what answers the "radar look-alikes" risk on the feasibility slide. The dataset
+does not permit it: all 450 masks were checked and only the oil scenes carry
+labelled pixels -- look-alike scenes are annotated exactly like clean sea. A
+third class with no positive examples would train to nothing and report a
+confident-looking 0.000.
+
+So the 150 look-alike scenes are used as HARD NEGATIVES instead: dark features
+the model is trained not to fire on. The look-alike claim is then measured at
+scene level -- how often the detector fires on a scene that contains look-alikes
+and no oil -- and lives in results/unet_metrics.json rather than in a per-pixel
+probability.
 
 Geometry, region selection and the output record all still come from
 mask_to_slick() in oceanfir.py. This file only supplies pixels. That is what
@@ -27,7 +39,7 @@ import numpy as np
 from oceanfir import load_scene, mask_to_slick
 
 WEIGHTS = os.environ.get("OCEANFIR_UNET", "unet_oil.pt")
-CLASSES = ["sea", "oil", "lookalike"]
+CLASSES = ["sea", "oil"]
 _MODEL = None
 
 _HELP = """
@@ -68,7 +80,13 @@ def load_model(weights=None, device=None):
 
     model = smp.Unet("resnet34", encoder_weights=None, in_channels=1,
                      classes=len(CLASSES))
-    state = torch.load(path, map_location="cpu")
+    # weights_only=False on purpose: torch 2.6+ flipped this default to True,
+    # and our own checkpoint carries a numpy scalar (oil_iou) that the safe
+    # unpickler rejects. This file is produced by our own notebook.
+    try:
+        state = torch.load(path, map_location="cpu", weights_only=False)
+    except TypeError:                       # torch < 1.13 has no such kwarg
+        state = torch.load(path, map_location="cpu")
     model.load_state_dict(state.get("model", state))
     model.eval().to(device)
     model._ocf_device = device
@@ -77,7 +95,7 @@ def load_model(weights=None, device=None):
 
 
 def predict_probs(im, model=None, tile=384, overlap=96, batch=8):
-    """Per-pixel class probabilities for a whole scene, H x W x 3.
+    """Per-pixel class probabilities for a whole scene, H x W x len(CLASSES).
 
     The model was trained on 384 px crops, so the scene is tiled rather than
     resized — resizing a 900 px scene down to 384 would destroy exactly the
@@ -123,23 +141,36 @@ def predict_probs(im, model=None, tile=384, overlap=96, batch=8):
     return np.transpose(probs, (1, 2, 0))
 
 
+def standardize(im):
+    """Zero mean, unit variance — the SAME preprocessing the notebook applies.
+
+    This is not cosmetic. Training ran on per-image standardised Sigma0 dB
+    (roughly -40..0), while load_scene() returns an 8-bit PNG scaled to 0..1.
+    Feeding the raw 0..1 array to a model trained on standardised dB is a
+    complete distribution mismatch and produces noise that looks exactly like
+    a broken model. Standardising both sides makes them comparable in shape,
+    which is the best that can be done once the scene has been quantised to
+    8-bit PNG — the honest fix is to run the detector on the original GeoTIFF.
+    """
+    im = im.astype(np.float32)
+    return (im - im.mean()) / (im.std() + 1e-6)
+
+
 def segment_unet(im, model=None, min_oil_prob=0.5):
-    """Returns (oil mask, oil probability map, look-alike probability map)."""
-    p = predict_probs(im, model)
-    oil, look = p[..., 1], p[..., 2]
-    # oil must both clear the threshold AND beat look-alike at that pixel —
-    # a pixel the model thinks is 0.5 oil and 0.5 look-alike is not evidence
-    mask = (oil >= min_oil_prob) & (oil > look)
-    return mask, oil, look
+    """Returns (oil mask, oil probability map)."""
+    p = predict_probs(standardize(im), model)
+    oil = p[..., 1]
+    return oil >= min_oil_prob, oil
 
 
 def detect_slick_unet(sar_path, bbox, min_km2=1.0, weights=None,
                       min_oil_prob=0.5, mask_png="mask.png"):
-    """Same signature and same return as detect_slick(), plus the two fields
-    only a learned detector can honestly fill: confidence and lookalike_prob."""
+    """Same signature and same return as detect_slick(), plus `confidence` —
+    the mean oil probability over the winning region, which only a learned
+    detector can honestly fill. `lookalike_prob` is set to None; see above."""
     model = load_model(weights)
     im, orig = load_scene(sar_path)
-    mask, oil, look = segment_unet(im, model, min_oil_prob)
+    mask, oil = segment_unet(im, model, min_oil_prob)
     if not mask.any():
         raise SystemExit(
             f"U-Net found no oil above p={min_oil_prob}. Max oil probability in "
@@ -148,8 +179,10 @@ def detect_slick_unet(sar_path, bbox, min_km2=1.0, weights=None,
 
     rec = mask_to_slick(mask, bbox, orig, min_km2, land=None,
                         mask_png=mask_png, prob=oil)
-    sel_look = float(look[mask].mean())
-    rec["lookalike_prob"] = round(sel_look, 3)
+    # null on purpose, and the contract allows it. There is no look-alike class
+    # to take a probability from -- see the module docstring. The look-alike
+    # number is the scene-level false-alarm rate in results/unet_metrics.json.
+    rec["lookalike_prob"] = None
     rec["method"] = "unet-resnet34"
     return rec
 
