@@ -44,15 +44,22 @@ def upgrade_v1(doc: dict) -> dict:
     return {
         "meta": {"version": "2.0", "source": "pipeline",
                  "generated_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-                 "detector": "classical", "runtime_s": None},
+                 # the pipeline writes `detector` at the top level; the contract
+                 # says it lives in meta, so it is mapped here rather than
+                 # leaking a second spelling to the frontend
+                 "detector": doc.get("detector", "classical"),
+                 "runtime_s": None},
         "scene": {**sc, "time_iso": sc.get("time_iso"),
                   "satellite": "Sentinel-1A", "mode": "IW GRDH",
                   "polarisation": "VV"},
-        "detection": {"method": "classical", "confidence": None,
-                      "lookalike_prob": None,
-                      "slick": {**doc.get("slick", {}), "centroid": None,
+        "detection": {"method": doc.get("detector", "classical"),
+                      # both filled by the U-Net path; classical leaves them null
+                      "confidence": doc.get("slick", {}).get("confidence"),
+                      "lookalike_prob": doc.get("slick", {}).get("lookalike_prob"),
+                      "slick": {**doc.get("slick", {}),
+                                "centroid": doc.get("slick", {}).get("centroid"),
                                 "age_hours_est": None}},
-        "drift": None,
+        "drift": doc.get("drift"),   # filled by drift.py via oceanfir.py
         "vessels": vessels,
         "dark_contacts": [],
         "summary": {"verdict": "accused" if acc else "no_attribution",
