@@ -1,0 +1,265 @@
+.vessel-table-panel,
+.score-panel,
+.exoneration-panel {
+  background: #0b171d;
+  border: 1px solid #1c343d;
+  color: #dce8ed;
+}
+
+.vessel-table-header,
+.score-header,
+.exoneration-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 15px 16px;
+  border-bottom: 1px solid #1c343d;
+}
+
+.vessel-table-header h2,
+.score-header h2,
+.exoneration-header h2 {
+  margin: 3px 0 0;
+  font-size: 14px;
+  color: #e6f2f5;
+}
+
+.vessel-table-eyebrow,
+.score-eyebrow,
+.exoneration-eyebrow {
+  margin: 0;
+  color: #5cc8d4;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .14em;
+}
+
+.vessel-count,
+.exoneration-count {
+  color: #91a8b1;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.vessel-table-scroll {
+  max-height: 420px;
+  overflow: auto;
+}
+
+.vessel-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.vessel-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 9px 10px;
+  background: #0e2027;
+  color: #718a94;
+  font-size: 9px;
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+}
+
+.vessel-table td {
+  padding: 10px;
+  border-top: 1px solid #172d35;
+}
+
+.vessel-row {
+  cursor: pointer;
+  transition: background .12s ease;
+}
+
+.vessel-row:hover,
+.vessel-row:focus {
+  background: #10262e;
+  outline: none;
+}
+
+.vessel-row.selected {
+  background: #12313a;
+  box-shadow: inset 2px 0 #5cc8d4;
+}
+
+.vessel-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 150px;
+  color: #e6f2f5;
+  font-weight: 650;
+}
+
+.dark-contact-dot {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  border-radius: 50%;
+  background: #5cc8d4;
+  box-shadow: 0 0 0 2px #21454e;
+}
+
+.numeric-cell {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.score-cell {
+  font-weight: 700;
+}
+
+.verdict-pill {
+  display: inline-block;
+  padding: 3px 7px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.verdict-accused {
+  color: #ffb3a5;
+  background: #4a211d;
+  border: 1px solid #873b30;
+}
+
+.verdict-suspect {
+  color: #f2c875;
+  background: #40351c;
+  border: 1px solid #735d2b;
+}
+
+.verdict-cleared {
+  color: #91a8b1;
+  background: #18262b;
+  border: 1px solid #30444b;
+}
+
+.vessel-empty,
+.score-empty,
+.exoneration-empty {
+  padding: 24px 16px;
+  color: #718a94;
+  font-size: 12px;
+}
+
+.score-panel {
+  margin-top: 12px;
+}
+
+.score-total {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.score-total strong {
+  color: #e6f2f5;
+  font-size: 20px;
+}
+
+.score-total span {
+  color: #718a94;
+  font-size: 11px;
+}
+
+.score-factors {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+}
+
+.score-factor-top,
+.score-factor-values {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 11px;
+}
+
+.score-factor-top {
+  margin-bottom: 6px;
+  color: #c7d6da;
+  font-weight: 650;
+}
+
+.score-weight {
+  color: #718a94;
+  font-variant-numeric: tabular-nums;
+}
+
+.score-bar-track {
+  height: 7px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: #172b32;
+}
+
+.score-bar-fill {
+  height: 100%;
+  background: #5cc8d4;
+}
+
+.score-factor-silence .score-bar-fill {
+  background: #e0a54b;
+}
+
+.score-factor-values {
+  margin-top: 5px;
+  color: #718a94;
+  font-variant-numeric: tabular-nums;
+}
+
+.score-summary {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-top: 1px solid #1c343d;
+  color: #91a8b1;
+  font-size: 11px;
+}
+
+.score-summary strong {
+  color: #e6f2f5;
+  font-variant-numeric: tabular-nums;
+}
+
+.exoneration-list {
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.exoneration-item {
+  padding: 12px 16px;
+  border-bottom: 1px solid #172d35;
+}
+
+.exoneration-vessel {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.exoneration-vessel strong {
+  color: #dce8ed;
+  font-size: 12px;
+}
+
+.exoneration-mmsi {
+  color: #607983;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.exoneration-item p {
+  margin: 6px 0 0;
+  color: #91a8b1;
+  font-size: 11px;
+  line-height: 1.45;
+}
