@@ -1,4 +1,3 @@
-numpy>=1.24
 pandas>=2.0
 pillow>=10.0
 scipy>=1.10
@@ -6,3 +5,12 @@ scikit-image>=0.21
 fastapi>=0.110
 uvicorn[standard]>=0.27
 reportlab>=4.0
+
+# --- learned detector (optional; the classical path needs none of this) ---
+# macOS x86_64 has no PyTorch wheel past 2.2.2, and that build is compiled
+# against NumPy 1.x. With NumPy 2 installed, torch imports but every
+# tensor<->array conversion fails with "_ARRAY_API not found", which breaks
+# unet.py inference silently at run time rather than at install time.
+numpy<2
+torch>=2.0
+segmentation-models-pytorch>=0.3.4

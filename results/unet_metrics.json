@@ -1,0 +1,27 @@
+{
+ "oil_iou": 0.7446765084740997,
+ "oil_precision": 0.7786708816483039,
+ "oil_recall": 0.9446212486001723,
+ "oil_f1": 0.8536556832823942,
+ "classes": [
+  "sea",
+  "oil"
+ ],
+ "channel": "VH",
+ "smoke": false,
+ "epochs": 15,
+ "scene_level": {
+  "sea": {
+   "n": 21,
+   "fired": 18
+  },
+  "oil": {
+   "n": 32,
+   "fired": 32
+  },
+  "lookalike": {
+   "n": 37,
+   "fired": 33
+  }
+ }
+}

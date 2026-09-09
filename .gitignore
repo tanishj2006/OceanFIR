@@ -11,7 +11,8 @@ data/*.SAFE/
 *.pth
 *.onnx
 
-# ---- generated
+# ---- generated. out/ is transient (PDFs, scratch); results/ is tracked on
+# purpose — the measured numbers are evidence and belong in the repo.
 out/
 scenes/*/data.json
 !scenes/gulf20230620/data.json
@@ -32,7 +33,10 @@ web/.vite/
 .vscode/
 .idea/
 
-# pipeline output at repo root — regenerated every run, do not track
-/data.json
-/mask.png
+# pipeline output at repo root — regenerated every run, do not track.
+# --out now names its own mask (data.json -> data.png) so two detectors
+# cannot leave a result paired with the other one's overlay.
+/data*.json
+/data*.png
+/mask*.png
 oceanfir_backup.py

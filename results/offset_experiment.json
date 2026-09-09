@@ -1,0 +1,40 @@
+{
+ "offset_experiment": [
+  {
+   "offset_m": 200.0,
+   "recall": 0.25,
+   "wrong": 0.05,
+   "false_acc": 0.0,
+   "median_rank": 2.5
+  },
+  {
+   "offset_m": 800.0,
+   "recall": 0.25,
+   "wrong": 0.05,
+   "false_acc": 0.0,
+   "median_rank": 2.0
+  },
+  {
+   "offset_m": 2200.0,
+   "recall": 0.15,
+   "wrong": 0.15,
+   "false_acc": 0.0,
+   "median_rank": 2.0
+  },
+  {
+   "offset_m": 4500.0,
+   "recall": 0.15,
+   "wrong": 0.2,
+   "false_acc": 0.0,
+   "median_rank": 3.0
+  },
+  {
+   "offset_m": 8000.0,
+   "recall": 0.1,
+   "wrong": 0.25,
+   "false_acc": 0.0,
+   "median_rank": 4.0
+  }
+ ],
+ "gap_scale_m": 10000.0
+}

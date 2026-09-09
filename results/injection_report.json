@@ -1,0 +1,1754 @@
+{
+ "summary": {
+  "positives": 20,
+  "negatives": 10,
+  "skipped": 1,
+  "gap_min": 60.0,
+  "min_margin": 0.08,
+  "seed": 7,
+  "recall_at_1": 0.2,
+  "recall_at_3": 0.65,
+  "wrong_accusation": 0.0,
+  "declined_on_guilty": 0.8,
+  "false_accusation_rate": 0.0,
+  "median_rank_of_guilty": 2.0
+ },
+ "sweep": [
+  {
+   "threshold": 0.4,
+   "margin": 0.0,
+   "recall": 0.4,
+   "wrong": 0.4,
+   "precision": 0.5,
+   "false_acc": 0.0
+  },
+  {
+   "threshold": 0.4,
+   "margin": 0.02,
+   "recall": 0.35,
+   "wrong": 0.25,
+   "precision": 0.583,
+   "false_acc": 0.0
+  },
+  {
+   "threshold": 0.4,
+   "margin": 0.04,
+   "recall": 0.2,
+   "wrong": 0.25,
+   "precision": 0.444,
+   "false_acc": 0.0
+  },
+  {
+   "threshold": 0.4,
+   "margin": 0.06,
+   "recall": 0.2,
+   "wrong": 0.1,
+   "precision": 0.667,
+   "false_acc": 0.0
+  },
+  {
+   "threshold": 0.4,
+   "margin": 0.08,
+   "recall": 0.2,
+   "wrong": 0.0,
+   "precision": 1.0,
+   "false_acc": 0.0
+  },
+  {
+   "threshold": 0.4,
+   "margin": 0.12,
+   "recall": 0.15,
+   "wrong": 0.0,
+   "precision": 1.0,
+   "false_acc": 0.0
+  },
+  {
+   "threshold": 0.45,
+   "margin": 0.0,
+   "recall": 0.4,
+   "wrong": 0.35,
+   "precision": 0.533,
+   "false_acc": 0.0
+  },
+  {
+   "threshold": 0.45,
+   "margin": 0.02,
+   "recall": 0.35,
+   "wrong": 0.2,
+   "precision": 0.636,
+   "false_acc": 0.0
+  },
+  {
+   "threshold": 0.45,
+   "margin": 0.04,
+   "recall": 0.2,
+   "wrong": 0.2,
+   "precision": 0.5,
+   "false_acc": 0.0
+  },
+  {
+   "threshold": 0.45,
+   "margin": 0.06,
+   "recall": 0.2,
+   "wrong": 0.1,
+   "precision": 0.667,
+   "false_acc": 0.0
+  },
+  {
+   "threshold": 0.45,
+   "margin": 0.08,
+   "recall": 0.2,
+   "wrong": 0.0,
+   "precision": 1.0,
+   "false_acc": 0.0
+  },
+  {
+   "threshold": 0.45,
+   "margin": 0.12,
+   "recall": 0.15,
+   "wrong": 0.0,
+   "precision": 1.0,
+   "false_acc": 0.0
+  },
+  {
+   "threshold": 0.5,
+   "margin": 0.0,
+   "recall": 0.35,
+   "wrong": 0.2,
+   "precision": 0.636,
+   "false_acc": 0.0
+  },
+  {
+   "threshold": 0.5,
+   "margin": 0.02,
+   "recall": 0.35,
+   "wrong": 0.1,
+   "precision": 0.778,
+   "false_acc": 0.0
+  },
+  {
+   "threshold": 0.5,
+   "margin": 0.04,
+   "recall": 0.2,
+   "wrong": 0.1,
+   "precision": 0.667,
+   "false_acc": 0.0
+  },
+  {
+   "threshold": 0.5,
+   "margin": 0.06,
+   "recall": 0.2,
+   "wrong": 0.05,
+   "precision": 0.8,
+   "false_acc": 0.0
+  },
+  {
+   "threshold": 0.5,
+   "margin": 0.08,
+   "recall": 0.2,
+   "wrong": 0.0,
+   "precision": 1.0,
+   "false_acc": 0.0
+  },
+  {
+   "threshold": 0.5,
+   "margin": 0.12,
+   "recall": 0.15,
+   "wrong": 0.0,
+   "precision": 1.0,
+   "false_acc": 0.0
+  }
+ ],
+ "trials": [
+  {
+   "accused_mmsi": null,
+   "hit": false,
+   "wrong": false,
+   "declined": true,
+   "target_rank": 2,
+   "target_score": 0.373,
+   "target_silence": 0.0,
+   "target_proximity": 0.648,
+   "target_gap_min": 0,
+   "top_score": 0.418,
+   "margin": 0.045,
+   "ranked": [
+    [
+     311001005,
+     0.418,
+     0
+    ],
+    [
+     636015547,
+     0.373,
+     0
+    ],
+    [
+     477162900,
+     0.296,
+     0
+    ],
+    [
+     367726000,
+     0.277,
+     0
+    ],
+    [
+     354791000,
+     0.271,
+     0
+    ],
+    [
+     366982000,
+     0.27,
+     0
+    ]
+   ],
+   "rivals_with_gaps": 0,
+   "n_scored": 239,
+   "kind": "positive",
+   "target_mmsi": 636015547,
+   "offset_m": 2200.0,
+   "name": "FAITH",
+   "slick_km": 16.5,
+   "gap_min": 60.0
+  },
+  {
+   "accused_mmsi": null,
+   "hit": false,
+   "wrong": false,
+   "declined": true,
+   "target_rank": 1,
+   "target_score": 0.482,
+   "target_silence": 0.0,
+   "target_proximity": 0.923,
+   "target_gap_min": 0,
+   "top_score": 0.482,
+   "margin": 0.02,
+   "ranked": [
+    [
+     367599830,
+     0.482,
+     0
+    ],
+    [
+     367015930,
+     0.462,
+     0
+    ],
+    [
+     367008520,
+     0.457,
+     0
+    ],
+    [
+     366957490,
+     0.42,
+     0
+    ],
+    [
+     368042990,
+     0.413,
+     0
+    ],
+    [
+     367445000,
+     0.412,
+     0
+    ]
+   ],
+   "rivals_with_gaps": 0,
+   "n_scored": 239,
+   "kind": "positive",
+   "target_mmsi": 367599830,
+   "offset_m": 2200.0,
+   "name": "FEDERAL PILOT II",
+   "slick_km": 14.5,
+   "gap_min": 60.0
+  },
+  {
+   "accused_mmsi": null,
+   "hit": false,
+   "wrong": false,
+   "declined": true,
+   "target_rank": 16,
+   "target_score": 0.232,
+   "target_silence": 0.0,
+   "target_proximity": 0.258,
+   "target_gap_min": 41,
+   "top_score": 0.468,
+   "margin": 0.079,
+   "ranked": [
+    [
+     367339130,
+     0.468,
+     30
+    ],
+    [
+     367113290,
+     0.389,
+     30
+    ],
+    [
+     338484000,
+     0.268,
+     91
+    ],
+    [
+     367630990,
+     0.266,
+     0
+    ],
+    [
+     366982000,
+     0.263,
+     0
+    ],
+    [
+     369970145,
+     0.262,
+     0
+    ]
+   ],
+   "rivals_with_gaps": 3,
+   "n_scored": 239,
+   "kind": "positive",
+   "target_mmsi": 367332840,
+   "offset_m": 2200.0,
+   "name": "KARLA F",
+   "slick_km": 14.1,
+   "gap_min": 60.0
+  },
+  {
+   "accused_mmsi": null,
+   "hit": false,
+   "wrong": false,
+   "declined": true,
+   "target_rank": 4,
+   "target_score": 0.434,
+   "target_silence": 0.0,
+   "target_proximity": 0.726,
+   "target_gap_min": 0,
+   "top_score": 0.532,
+   "margin": 0.006,
+   "ranked": [
+    [
+     367783120,
+     0.532,
+     0
+    ],
+    [
+     367564890,
+     0.526,
+     0
+    ],
+    [
+     367594260,
+     0.456,
+     0
+    ],
+    [
+     367301340,
+     0.434,
+     0
+    ],
+    [
+     368248000,
+     0.268,
+     0
+    ],
+    [
+     369970145,
+     0.264,
+     0
+    ]
+   ],
+   "rivals_with_gaps": 0,
+   "n_scored": 239,
+   "kind": "positive",
+   "target_mmsi": 367301340,
+   "offset_m": 2200.0,
+   "name": "LADY PAIGE",
+   "slick_km": 14.0,
+   "gap_min": 60.0
+  },
+  {
+   "accused_mmsi": null,
+   "hit": false,
+   "wrong": false,
+   "declined": true,
+   "target_rank": 1,
+   "target_score": 0.876,
+   "target_silence": 0.814,
+   "target_proximity": 0.979,
+   "target_gap_min": 77,
+   "top_score": 0.876,
+   "margin": 0.029,
+   "ranked": [
+    [
+     369347000,
+     0.876,
+     77
+    ],
+    [
+     367336760,
+     0.847,
+     82
+    ],
+    [
+     366887510,
+     0.839,
+     108
+    ],
+    [
+     338484000,
+     0.822,
+     91
+    ],
+    [
+     367612520,
+     0.815,
+     87
+    ],
+    [
+     367442150,
+     0.805,
+     79
+    ]
+   ],
+   "rivals_with_gaps": 4,
+   "n_scored": 239,
+   "kind": "positive",
+   "target_mmsi": 369347000,
+   "offset_m": 2200.0,
+   "name": "PERSISTENCE LAB",
+   "slick_km": 13.2,
+   "gap_min": 60.0
+  },
+  {
+   "accused_mmsi": 368039220,
+   "hit": true,
+   "wrong": false,
+   "declined": false,
+   "target_rank": 1,
+   "target_score": 0.728,
+   "target_silence": 0.814,
+   "target_proximity": 0.767,
+   "target_gap_min": 82,
+   "top_score": 0.728,
+   "margin": 0.449,
+   "ranked": [
+    [
+     368039220,
+     0.728,
+     82
+    ],
+    [
+     366515000,
+     0.279,
+     30
+    ],
+    [
+     366982350,
+     0.278,
+     0
+    ],
+    [
+     367369930,
+     0.276,
+     80
+    ],
+    [
+     368315470,
+     0.262,
+     0
+    ],
+    [
+     367452650,
+     0.258,
+     48
+    ]
+   ],
+   "rivals_with_gaps": 2,
+   "n_scored": 239,
+   "kind": "positive",
+   "target_mmsi": 368039220,
+   "offset_m": 2200.0,
+   "name": "JUSTIN DANG 2",
+   "slick_km": 4.7,
+   "gap_min": 60.0
+  },
+  {
+   "accused_mmsi": null,
+   "hit": false,
+   "wrong": false,
+   "declined": true,
+   "target_rank": 3,
+   "target_score": 0.357,
+   "target_silence": 0.0,
+   "target_proximity": 0.503,
+   "target_gap_min": 0,
+   "top_score": 0.556,
+   "margin": 0.047,
+   "ranked": [
+    [
+     367627370,
+     0.556,
+     21
+    ],
+    [
+     367438630,
+     0.509,
+     0
+    ],
+    [
+     367645120,
+     0.357,
+     0
+    ],
+    [
+     367726000,
+     0.277,
+     0
+    ],
+    [
+     338484000,
+     0.269,
+     91
+    ],
+    [
+     367630990,
+     0.264,
+     0
+    ]
+   ],
+   "rivals_with_gaps": 2,
+   "n_scored": 239,
+   "kind": "positive",
+   "target_mmsi": 367645120,
+   "offset_m": 2200.0,
+   "name": "CAPE COD",
+   "slick_km": 13.7,
+   "gap_min": 60.0
+  },
+  {
+   "accused_mmsi": null,
+   "hit": false,
+   "wrong": false,
+   "declined": true,
+   "target_rank": 1,
+   "target_score": 0.321,
+   "target_silence": 0.0,
+   "target_proximity": 0.524,
+   "target_gap_min": 0,
+   "top_score": 0.321,
+   "margin": 0.036,
+   "ranked": [
+    [
+     368248000,
+     0.321,
+     0
+    ],
+    [
+     367564890,
+     0.285,
+     0
+    ],
+    [
+     367783120,
+     0.283,
+     0
+    ],
+    [
+     369970145,
+     0.274,
+     0
+    ],
+    [
+     367594260,
+     0.267,
+     0
+    ],
+    [
+     354791000,
+     0.261,
+     0
+    ]
+   ],
+   "rivals_with_gaps": 0,
+   "n_scored": 239,
+   "kind": "positive",
+   "target_mmsi": 368248000,
+   "offset_m": 2200.0,
+   "name": "KRISTIN FAGAN",
+   "slick_km": 14.1,
+   "gap_min": 60.0
+  },
+  {
+   "accused_mmsi": null,
+   "hit": false,
+   "wrong": false,
+   "declined": true,
+   "target_rank": 164,
+   "target_score": 0.163,
+   "target_silence": 0.0,
+   "target_proximity": 0.009,
+   "target_gap_min": 0,
+   "top_score": 0.262,
+   "margin": 0.001,
+   "ranked": [
+    [
+     354791000,
+     0.262,
+     0
+    ],
+    [
+     369970145,
+     0.261,
+     0
+    ],
+    [
+     338484000,
+     0.253,
+     91
+    ],
+    [
+     367622660,
+     0.249,
+     0
+    ],
+    [
+     367564890,
+     0.248,
+     0
+    ],
+    [
+     366982350,
+     0.245,
+     0
+    ]
+   ],
+   "rivals_with_gaps": 1,
+   "n_scored": 239,
+   "kind": "positive",
+   "target_mmsi": 367561730,
+   "offset_m": 2200.0,
+   "name": "MR JAKE",
+   "slick_km": 14.4,
+   "gap_min": 60.0
+  },
+  {
+   "accused_mmsi": null,
+   "hit": false,
+   "wrong": false,
+   "declined": true,
+   "target_rank": 18,
+   "target_score": 0.232,
+   "target_silence": 0.0,
+   "target_proximity": 0.001,
+   "target_gap_min": 48,
+   "top_score": 0.381,
+   "margin": 0.091,
+   "ranked": [
+    [
+     367668280,
+     0.381,
+     0
+    ],
+    [
+     367079070,
+     0.29,
+     0
+    ],
+    [
+     366982000,
+     0.267,
+     0
+    ],
+    [
+     367630990,
+     0.267,
+     0
+    ],
+    [
+     338484000,
+     0.266,
+     91
+    ],
+    [
+     354791000,
+     0.265,
+     0
+    ]
+   ],
+   "rivals_with_gaps": 1,
+   "n_scored": 239,
+   "kind": "positive",
+   "target_mmsi": 367390720,
+   "offset_m": 2200.0,
+   "name": "INTRUDER",
+   "slick_km": 15.0,
+   "gap_min": 60.0
+  },
+  {
+   "accused_mmsi": null,
+   "hit": false,
+   "wrong": false,
+   "declined": true,
+   "target_rank": 7,
+   "target_score": 0.396,
+   "target_silence": 0.0,
+   "target_proximity": 0.726,
+   "target_gap_min": 0,
+   "top_score": 0.506,
+   "margin": 0.06,
+   "ranked": [
+    [
+     367653160,
+     0.506,
+     27
+    ],
+    [
+     368278450,
+     0.446,
+     0
+    ],
+    [
+     369240000,
+     0.445,
+     0
+    ],
+    [
+     367710550,
+     0.414,
+     67
+    ],
+    [
+     367612490,
+     0.406,
+     0
+    ],
+    [
+     367474360,
+     0.399,
+     0
+    ]
+   ],
+   "rivals_with_gaps": 2,
+   "n_scored": 239,
+   "kind": "positive",
+   "target_mmsi": 303553000,
+   "offset_m": 2200.0,
+   "name": "TIMBALIER ISLAND",
+   "slick_km": 13.9,
+   "gap_min": 60.0
+  },
+  {
+   "accused_mmsi": null,
+   "hit": false,
+   "wrong": false,
+   "declined": true,
+   "target_rank": 6,
+   "target_score": 0.266,
+   "target_silence": 0.0,
+   "target_proximity": 0.345,
+   "target_gap_min": 0,
+   "top_score": 0.488,
+   "margin": 0.045,
+   "ranked": [
+    [
+     366982350,
+     0.488,
+     0
+    ],
+    [
+     366906130,
+     0.443,
+     0
+    ],
+    [
+     367561730,
+     0.327,
+     0
+    ],
+    [
+     367613490,
+     0.27,
+     28
+    ],
+    [
+     367630990,
+     0.267,
+     0
+    ],
+    [
+     367643990,
+     0.266,
+     0
+    ]
+   ],
+   "rivals_with_gaps": 1,
+   "n_scored": 239,
+   "kind": "positive",
+   "target_mmsi": 367643990,
+   "offset_m": 2200.0,
+   "name": "JAVA",
+   "slick_km": 14.4,
+   "gap_min": 60.0
+  },
+  {
+   "accused_mmsi": null,
+   "hit": false,
+   "wrong": false,
+   "declined": true,
+   "target_rank": 60,
+   "target_score": 0.204,
+   "target_silence": 0.0,
+   "target_proximity": 0.159,
+   "target_gap_min": 0,
+   "top_score": 0.452,
+   "margin": 0.014,
+   "ranked": [
+    [
+     636020869,
+     0.452,
+     0
+    ],
+    [
+     477003800,
+     0.438,
+     0
+    ],
+    [
+     477131900,
+     0.362,
+     0
+    ],
+    [
+     338484000,
+     0.269,
+     91
+    ],
+    [
+     367726000,
+     0.267,
+     0
+    ],
+    [
+     367630990,
+     0.264,
+     0
+    ]
+   ],
+   "rivals_with_gaps": 1,
+   "n_scored": 239,
+   "kind": "positive",
+   "target_mmsi": 538005746,
+   "offset_m": 2200.0,
+   "name": "SILVER CINDY",
+   "slick_km": 13.7,
+   "gap_min": 60.0
+  },
+  {
+   "accused_mmsi": 367773540,
+   "hit": true,
+   "wrong": false,
+   "declined": false,
+   "target_rank": 1,
+   "target_score": 0.644,
+   "target_silence": 0.588,
+   "target_proximity": 0.726,
+   "target_gap_min": 61,
+   "top_score": 0.644,
+   "margin": 0.375,
+   "ranked": [
+    [
+     367773540,
+     0.644,
+     61
+    ],
+    [
+     368071000,
+     0.269,
+     0
+    ],
+    [
+     338484000,
+     0.268,
+     91
+    ],
+    [
+     367726000,
+     0.268,
+     0
+    ],
+    [
+     367630990,
+     0.266,
+     0
+    ],
+    [
+     366982000,
+     0.262,
+     0
+    ]
+   ],
+   "rivals_with_gaps": 1,
+   "n_scored": 239,
+   "kind": "positive",
+   "target_mmsi": 367773540,
+   "offset_m": 2200.0,
+   "name": "LUCY",
+   "slick_km": 14.0,
+   "gap_min": 60.0
+  },
+  {
+   "accused_mmsi": 367339130,
+   "hit": true,
+   "wrong": false,
+   "declined": false,
+   "target_rank": 1,
+   "target_score": 0.51,
+   "target_silence": 0.31,
+   "target_proximity": 0.726,
+   "target_gap_min": 30,
+   "top_score": 0.51,
+   "margin": 0.083,
+   "ranked": [
+    [
+     367339130,
+     0.51,
+     30
+    ],
+    [
+     367332840,
+     0.427,
+     41
+    ],
+    [
+     367113290,
+     0.421,
+     30
+    ],
+    [
+     368189190,
+     0.288,
+     0
+    ],
+    [
+     354791000,
+     0.272,
+     0
+    ],
+    [
+     366982000,
+     0.27,
+     0
+    ]
+   ],
+   "rivals_with_gaps": 2,
+   "n_scored": 239,
+   "kind": "positive",
+   "target_mmsi": 367339130,
+   "offset_m": 2200.0,
+   "name": "MS MEGAN",
+   "slick_km": 22.5,
+   "gap_min": 60.0
+  },
+  {
+   "accused_mmsi": null,
+   "hit": false,
+   "wrong": false,
+   "declined": true,
+   "target_rank": 3,
+   "target_score": 0.359,
+   "target_silence": 0.0,
+   "target_proximity": 0.589,
+   "target_gap_min": 0,
+   "top_score": 0.504,
+   "margin": 0.017,
+   "ranked": [
+    [
+     367144870,
+     0.504,
+     45
+    ],
+    [
+     367726000,
+     0.487,
+     0
+    ],
+    [
+     367612490,
+     0.359,
+     0
+    ],
+    [
+     367390890,
+     0.275,
+     48
+    ],
+    [
+     338484000,
+     0.268,
+     91
+    ],
+    [
+     367630990,
+     0.266,
+     0
+    ]
+   ],
+   "rivals_with_gaps": 3,
+   "n_scored": 239,
+   "kind": "positive",
+   "target_mmsi": 367612490,
+   "offset_m": 2200.0,
+   "name": "HOS CALEDONIA",
+   "slick_km": 14.2,
+   "gap_min": 60.0
+  },
+  {
+   "accused_mmsi": null,
+   "hit": false,
+   "wrong": false,
+   "declined": true,
+   "target_rank": 1,
+   "target_score": 0.693,
+   "target_silence": 0.612,
+   "target_proximity": 0.761,
+   "target_gap_min": 77,
+   "top_score": 0.693,
+   "margin": 0.037,
+   "ranked": [
+    [
+     368278450,
+     0.693,
+     77
+    ],
+    [
+     369347000,
+     0.656,
+     57
+    ],
+    [
+     368269780,
+     0.607,
+     43
+    ],
+    [
+     367438530,
+     0.59,
+     46
+    ],
+    [
+     338484000,
+     0.571,
+     91
+    ],
+    [
+     367113290,
+     0.552,
+     30
+    ]
+   ],
+   "rivals_with_gaps": 4,
+   "n_scored": 239,
+   "kind": "positive",
+   "target_mmsi": 368278450,
+   "offset_m": 2200.0,
+   "name": "EARL W REDD",
+   "slick_km": 12.1,
+   "gap_min": 60.0
+  },
+  {
+   "accused_mmsi": null,
+   "hit": false,
+   "wrong": false,
+   "declined": true,
+   "target_rank": 1,
+   "target_score": 0.59,
+   "target_silence": 0.456,
+   "target_proximity": 0.727,
+   "target_gap_min": 61,
+   "top_score": 0.59,
+   "margin": 0.022,
+   "ranked": [
+    [
+     367474360,
+     0.59,
+     61
+    ],
+    [
+     338484000,
+     0.568,
+     91
+    ],
+    [
+     367653160,
+     0.56,
+     27
+    ],
+    [
+     367630990,
+     0.558,
+     0
+    ],
+    [
+     367336760,
+     0.545,
+     82
+    ],
+    [
+     367613490,
+     0.512,
+     28
+    ]
+   ],
+   "rivals_with_gaps": 3,
+   "n_scored": 239,
+   "kind": "positive",
+   "target_mmsi": 367474360,
+   "offset_m": 2200.0,
+   "name": "OCEAN PROJECT",
+   "slick_km": 13.7,
+   "gap_min": 60.0
+  },
+  {
+   "accused_mmsi": 367518570,
+   "hit": true,
+   "wrong": false,
+   "declined": false,
+   "target_rank": 1,
+   "target_score": 0.747,
+   "target_silence": 0.639,
+   "target_proximity": 0.823,
+   "target_gap_min": 61,
+   "top_score": 0.747,
+   "margin": 0.478,
+   "ranked": [
+    [
+     367518570,
+     0.747,
+     61
+    ],
+    [
+     338484000,
+     0.269,
+     91
+    ],
+    [
+     367630990,
+     0.265,
+     0
+    ],
+    [
+     367005130,
+     0.263,
+     36
+    ],
+    [
+     366982000,
+     0.262,
+     0
+    ],
+    [
+     369970145,
+     0.262,
+     0
+    ]
+   ],
+   "rivals_with_gaps": 2,
+   "n_scored": 239,
+   "kind": "positive",
+   "target_mmsi": 367518570,
+   "offset_m": 2200.0,
+   "name": "HARVEY INTERVENTION",
+   "slick_km": 13.9,
+   "gap_min": 60.0
+  },
+  {
+   "accused_mmsi": null,
+   "hit": false,
+   "wrong": false,
+   "declined": true,
+   "target_rank": 2,
+   "target_score": 0.322,
+   "target_silence": 0.0,
+   "target_proximity": 0.488,
+   "target_gap_min": 0,
+   "top_score": 0.323,
+   "margin": 0.001,
+   "ranked": [
+    [
+     367561730,
+     0.323,
+     0
+    ],
+    [
+     367327360,
+     0.322,
+     0
+    ],
+    [
+     367630990,
+     0.266,
+     0
+    ],
+    [
+     367542650,
+     0.262,
+     26
+    ],
+    [
+     369970145,
+     0.262,
+     0
+    ],
+    [
+     354791000,
+     0.261,
+     0
+    ]
+   ],
+   "rivals_with_gaps": 1,
+   "n_scored": 239,
+   "kind": "positive",
+   "target_mmsi": 367327360,
+   "offset_m": 2200.0,
+   "name": "MEDITERRANEAN",
+   "slick_km": 14.2,
+   "gap_min": 60.0
+  },
+  {
+   "accused_mmsi": null,
+   "hit": false,
+   "wrong": false,
+   "declined": true,
+   "target_rank": null,
+   "target_score": null,
+   "target_silence": null,
+   "target_proximity": null,
+   "target_gap_min": null,
+   "top_score": 0.268,
+   "margin": 0.002,
+   "ranked": [
+    [
+     338484000,
+     0.268,
+     91
+    ],
+    [
+     367630990,
+     0.266,
+     0
+    ],
+    [
+     367542650,
+     0.263,
+     26
+    ],
+    [
+     369970145,
+     0.262,
+     0
+    ],
+    [
+     354791000,
+     0.26,
+     0
+    ],
+    [
+     366982000,
+     0.259,
+     0
+    ]
+   ],
+   "rivals_with_gaps": 2,
+   "n_scored": 239,
+   "kind": "negative",
+   "target_mmsi": -1,
+   "name": "(empty water)",
+   "slick_km": 14.0,
+   "gap_min": 0,
+   "clearance_km": 18.2
+  },
+  {
+   "accused_mmsi": null,
+   "hit": false,
+   "wrong": false,
+   "declined": true,
+   "target_rank": null,
+   "target_score": null,
+   "target_silence": null,
+   "target_proximity": null,
+   "target_gap_min": null,
+   "top_score": 0.266,
+   "margin": 0.003,
+   "ranked": [
+    [
+     367630990,
+     0.266,
+     0
+    ],
+    [
+     367542650,
+     0.263,
+     26
+    ],
+    [
+     369970145,
+     0.262,
+     0
+    ],
+    [
+     354791000,
+     0.26,
+     0
+    ],
+    [
+     366982000,
+     0.258,
+     0
+    ],
+    [
+     338484000,
+     0.257,
+     91
+    ]
+   ],
+   "rivals_with_gaps": 1,
+   "n_scored": 239,
+   "kind": "negative",
+   "target_mmsi": -1,
+   "name": "(empty water)",
+   "slick_km": 14.0,
+   "gap_min": 0,
+   "clearance_km": 20.6
+  },
+  {
+   "accused_mmsi": null,
+   "hit": false,
+   "wrong": false,
+   "declined": true,
+   "target_rank": null,
+   "target_score": null,
+   "target_silence": null,
+   "target_proximity": null,
+   "target_gap_min": null,
+   "top_score": 0.268,
+   "margin": 0.002,
+   "ranked": [
+    [
+     338484000,
+     0.268,
+     91
+    ],
+    [
+     367630990,
+     0.266,
+     0
+    ],
+    [
+     367542650,
+     0.263,
+     26
+    ],
+    [
+     369970145,
+     0.262,
+     0
+    ],
+    [
+     354791000,
+     0.26,
+     0
+    ],
+    [
+     366982000,
+     0.259,
+     0
+    ]
+   ],
+   "rivals_with_gaps": 2,
+   "n_scored": 239,
+   "kind": "negative",
+   "target_mmsi": -1,
+   "name": "(empty water)",
+   "slick_km": 14.0,
+   "gap_min": 0,
+   "clearance_km": 18.2
+  },
+  {
+   "accused_mmsi": null,
+   "hit": false,
+   "wrong": false,
+   "declined": true,
+   "target_rank": null,
+   "target_score": null,
+   "target_silence": null,
+   "target_proximity": null,
+   "target_gap_min": null,
+   "top_score": 0.268,
+   "margin": 0.002,
+   "ranked": [
+    [
+     338484000,
+     0.268,
+     91
+    ],
+    [
+     367630990,
+     0.266,
+     0
+    ],
+    [
+     369970145,
+     0.262,
+     0
+    ],
+    [
+     354791000,
+     0.26,
+     0
+    ],
+    [
+     366982000,
+     0.259,
+     0
+    ],
+    [
+     367452650,
+     0.251,
+     48
+    ]
+   ],
+   "rivals_with_gaps": 1,
+   "n_scored": 239,
+   "kind": "negative",
+   "target_mmsi": -1,
+   "name": "(empty water)",
+   "slick_km": 14.0,
+   "gap_min": 0,
+   "clearance_km": 19.6
+  },
+  {
+   "accused_mmsi": null,
+   "hit": false,
+   "wrong": false,
+   "declined": true,
+   "target_rank": null,
+   "target_score": null,
+   "target_silence": null,
+   "target_proximity": null,
+   "target_gap_min": null,
+   "top_score": 0.268,
+   "margin": 0.002,
+   "ranked": [
+    [
+     338484000,
+     0.268,
+     91
+    ],
+    [
+     367630990,
+     0.266,
+     0
+    ],
+    [
+     369970145,
+     0.262,
+     0
+    ],
+    [
+     354791000,
+     0.26,
+     0
+    ],
+    [
+     366982000,
+     0.258,
+     0
+    ],
+    [
+     367452650,
+     0.251,
+     48
+    ]
+   ],
+   "rivals_with_gaps": 1,
+   "n_scored": 239,
+   "kind": "negative",
+   "target_mmsi": -1,
+   "name": "(empty water)",
+   "slick_km": 14.0,
+   "gap_min": 0,
+   "clearance_km": 19.2
+  },
+  {
+   "accused_mmsi": null,
+   "hit": false,
+   "wrong": false,
+   "declined": true,
+   "target_rank": null,
+   "target_score": null,
+   "target_silence": null,
+   "target_proximity": null,
+   "target_gap_min": null,
+   "top_score": 0.266,
+   "margin": 0.004,
+   "ranked": [
+    [
+     367630990,
+     0.266,
+     0
+    ],
+    [
+     369970145,
+     0.262,
+     0
+    ],
+    [
+     354791000,
+     0.26,
+     0
+    ],
+    [
+     366982000,
+     0.258,
+     0
+    ],
+    [
+     338484000,
+     0.257,
+     91
+    ],
+    [
+     367452650,
+     0.251,
+     48
+    ]
+   ],
+   "rivals_with_gaps": 1,
+   "n_scored": 239,
+   "kind": "negative",
+   "target_mmsi": -1,
+   "name": "(empty water)",
+   "slick_km": 14.0,
+   "gap_min": 0,
+   "clearance_km": 18.7
+  },
+  {
+   "accused_mmsi": null,
+   "hit": false,
+   "wrong": false,
+   "declined": true,
+   "target_rank": null,
+   "target_score": null,
+   "target_silence": null,
+   "target_proximity": null,
+   "target_gap_min": null,
+   "top_score": 0.268,
+   "margin": 0.002,
+   "ranked": [
+    [
+     338484000,
+     0.268,
+     91
+    ],
+    [
+     367630990,
+     0.266,
+     0
+    ],
+    [
+     369970145,
+     0.262,
+     0
+    ],
+    [
+     354791000,
+     0.26,
+     0
+    ],
+    [
+     366982000,
+     0.258,
+     0
+    ],
+    [
+     367452650,
+     0.251,
+     48
+    ]
+   ],
+   "rivals_with_gaps": 1,
+   "n_scored": 239,
+   "kind": "negative",
+   "target_mmsi": -1,
+   "name": "(empty water)",
+   "slick_km": 14.0,
+   "gap_min": 0,
+   "clearance_km": 18.7
+  },
+  {
+   "accused_mmsi": null,
+   "hit": false,
+   "wrong": false,
+   "declined": true,
+   "target_rank": null,
+   "target_score": null,
+   "target_silence": null,
+   "target_proximity": null,
+   "target_gap_min": null,
+   "top_score": 0.266,
+   "margin": 0.004,
+   "ranked": [
+    [
+     367630990,
+     0.266,
+     0
+    ],
+    [
+     369970145,
+     0.262,
+     0
+    ],
+    [
+     354791000,
+     0.26,
+     0
+    ],
+    [
+     366982000,
+     0.258,
+     0
+    ],
+    [
+     338484000,
+     0.257,
+     91
+    ],
+    [
+     367452650,
+     0.251,
+     48
+    ]
+   ],
+   "rivals_with_gaps": 1,
+   "n_scored": 239,
+   "kind": "negative",
+   "target_mmsi": -1,
+   "name": "(empty water)",
+   "slick_km": 14.0,
+   "gap_min": 0,
+   "clearance_km": 18.0
+  },
+  {
+   "accused_mmsi": null,
+   "hit": false,
+   "wrong": false,
+   "declined": true,
+   "target_rank": null,
+   "target_score": null,
+   "target_silence": null,
+   "target_proximity": null,
+   "target_gap_min": null,
+   "top_score": 0.268,
+   "margin": 0.002,
+   "ranked": [
+    [
+     338484000,
+     0.268,
+     91
+    ],
+    [
+     367630990,
+     0.266,
+     0
+    ],
+    [
+     367542650,
+     0.263,
+     26
+    ],
+    [
+     369970145,
+     0.262,
+     0
+    ],
+    [
+     354791000,
+     0.26,
+     0
+    ],
+    [
+     366982000,
+     0.259,
+     0
+    ]
+   ],
+   "rivals_with_gaps": 2,
+   "n_scored": 239,
+   "kind": "negative",
+   "target_mmsi": -1,
+   "name": "(empty water)",
+   "slick_km": 14.0,
+   "gap_min": 0,
+   "clearance_km": 18.7
+  },
+  {
+   "accused_mmsi": null,
+   "hit": false,
+   "wrong": false,
+   "declined": true,
+   "target_rank": null,
+   "target_score": null,
+   "target_silence": null,
+   "target_proximity": null,
+   "target_gap_min": null,
+   "top_score": 0.268,
+   "margin": 0.0,
+   "ranked": [
+    [
+     338484000,
+     0.268,
+     91
+    ],
+    [
+     367726000,
+     0.268,
+     0
+    ],
+    [
+     367630990,
+     0.266,
+     0
+    ],
+    [
+     366982000,
+     0.262,
+     0
+    ],
+    [
+     369970145,
+     0.262,
+     0
+    ],
+    [
+     354791000,
+     0.26,
+     0
+    ]
+   ],
+   "rivals_with_gaps": 1,
+   "n_scored": 239,
+   "kind": "negative",
+   "target_mmsi": -1,
+   "name": "(empty water)",
+   "slick_km": 14.0,
+   "gap_min": 0,
+   "clearance_km": 13.0
+  }
+ ]
+}
