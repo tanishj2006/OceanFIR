@@ -125,3 +125,29 @@
 .layers-trigger:hover { border-color: #5cc8d4; color: #eaf6f8; }
 .layers-trigger[aria-expanded="true"] { border-color: #5cc8d4; background: #12424c; }
 .layers-trigger .chev { font-size: 9px; opacity: .75; }
+
+/* ---------- vessel registry lookups ---------- */
+.vessel-lookup {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed #23414b;
+}
+
+.vessel-lookup-label {
+  font-size: 10px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: #7d949c;
+}
+
+.vessel-lookup a {
+  color: #5cc8d4;
+  font-size: 12.5px;
+  text-decoration: none;
+  width: fit-content;
+}
+
+.vessel-lookup a:hover { text-decoration: underline; color: #8fe0e8; }

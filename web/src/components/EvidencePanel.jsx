@@ -76,6 +76,31 @@ export default function EvidencePanel({ result, highlight, selectedMmsi }) {
               {Number.isFinite(vessel.parity) && <p>Track/slick parity: {percentage(vessel.parity)}</p>}
               {Number.isFinite(vessel.silence) && <p>Silence component: {percentage(vessel.silence)}</p>}
               {vessel.dark && <p>Dark-activity flag is set on this vessel.</p>}
+
+              {/* Look the vessel up on the public registries. OceanFIR names a
+                  candidate from one scene; an investigator still has to check
+                  who owns it and whether it has a record. These open in a new
+                  tab and the app does not depend on them -- the demo works with
+                  the network off, which is the whole reason there are no map
+                  tiles either. */}
+              <div className="vessel-lookup">
+                <span className="vessel-lookup-label">Look up this vessel</span>
+                <a
+                  href={`https://www.marinetraffic.com/en/ais/details/ships/mmsi:${vessel.mmsi}`}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                >Live position &amp; particulars ↗</a>
+                <a
+                  href="https://www.equasis.org/"
+                  target="_blank"
+                  rel="noreferrer noopener"
+                >Equasis — owner, class, PSC record ↗</a>
+                <a
+                  href="https://www.iomou.org/inspmain.htm"
+                  target="_blank"
+                  rel="noreferrer noopener"
+                >Indian Ocean MoU — inspection history ↗</a>
+              </div>
             </>
           ) : <p>No accused or suspect vessel in this result.</p>}
         </DetailCard>
