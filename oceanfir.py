@@ -342,6 +342,11 @@ def main():
                         "notebooks/train_unet.ipynb")
     p.add_argument("--min-oil-prob", type=float, default=0.5,
                    help="unet only: probability above which a pixel counts as oil")
+    p.add_argument("--forecast-hours", type=float, default=12.0,
+                   help="forward drift horizon in hours; 0 disables the forecast")
+    p.add_argument("--forcing-source", default=None,
+                   help="where u_ms/v_ms came from. Recorded in the output so the "
+                        "provenance of the drift forcing travels with the result.")
     p.add_argument("--score-at", choices=["observed", "origin"], default="observed",
                    help="score vessel proximity against the slick as observed, or "
                         "against the back-advected discharge origin. 'origin' is "
@@ -401,6 +406,32 @@ def main():
             print("     drift.py not present yet — drift stays null")
         except Exception as e:
             print(f"     drift failed ({type(e).__name__}: {e}) — drift stays null")
+
+    # Forward advection: where the slick goes next. Attribution needs the
+    # origin, response needs this, and the problem statement asks for both.
+    # Same integration and the same ensemble as the hindcast, sign flipped.
+    forecast = None
+    if a.forecast_hours > 0:
+        try:
+            from drift import forecast as forward_advect
+            forecast = forward_advect(
+                head=slick["head"],
+                t0_iso=t0.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                hours=a.forecast_hours, u_ms=a.u_ms, v_ms=a.v_ms)
+            print(f"     forecast  {forecast['endpoint']}  "
+                  f"+/- {round(forecast['uncertainty_km'], 2)} km  "
+                  f"at {forecast['endpoint_time_iso']}")
+        except ImportError:
+            print("     drift.py has no forecast() — forecast stays null")
+        except Exception as e:
+            print(f"     forecast failed ({type(e).__name__}: {e}) — stays null")
+
+    # Provenance for the forcing, so nobody has to read the shell history to
+    # find out where -0.25 m/s came from.
+    if a.forcing_source:
+        for block in (drift, forecast):
+            if block and isinstance(block.get("forcing"), dict):
+                block["forcing"]["source"] = a.forcing_source
 
     # --score-at origin moves the slick back in SPACE to where it was
     # discharged; it has to move the clock back with it, or we would be asking
@@ -492,6 +523,7 @@ def main():
                                 "coverage_pct": slick["coverage_pct"],
                                 "age_hours_est": None}},
         "drift": drift,
+        "forecast": forecast,
         "vessels": shown,
         "dark_contacts": [],
         "summary": {"verdict": "accused" if acc else "no_attribution",

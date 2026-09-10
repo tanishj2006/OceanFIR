@@ -2,10 +2,29 @@
   "name": "Mississippi Delta / Gulf of Mexico",
   "image": "sar_sea.png",
   "ais": "data/AIS_2023_06_20.csv",
-  "bbox": [-90.821, 28.133, -88.555, 29.2],
+  "bbox": [
+    -90.821,
+    28.133,
+    -88.555,
+    29.2
+  ],
   "time": "2023-06-20T00:02:34",
-  "args": ["--detector", "unet",
-           "--drift-hours", "12",
-           "--top", "5",
-           "--mask", "data_unet.png"]
+  "args": [
+    "--detector",
+    "unet",
+    "--drift-hours",
+    "12",
+    "--forecast-hours",
+    "12",
+    "--u-ms",
+    "-0.25",
+    "--v-ms",
+    "-0.12",
+    "--forcing-source",
+    "climatological mean surface current, Mississippi Delta shelf, June (no Copernicus Marine credentials in the build window)",
+    "--top",
+    "5",
+    "--mask",
+    "data_unet.png"
+  ]
 }

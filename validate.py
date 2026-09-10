@@ -511,6 +511,53 @@ class Validator:
     # SUMMARY
     # ---------------------------------------------------------
 
+    def validate_forecast(self):
+        """Forward drift. Optional and nullable, exactly like drift."""
+        forecast = self.data.get("forecast")
+
+        if forecast is None:
+            self.check("forecast", True)
+            return
+
+        self.check("forecast", isinstance(forecast, dict))
+        if not isinstance(forecast, dict):
+            return
+
+        self.check(
+            "forecast.method",
+            forecast.get("method") == "forward-advection",
+        )
+        self.check(
+            "forecast.endpoint",
+            self.is_lon_lat(forecast.get("endpoint")),
+        )
+        self.check(
+            "forecast.endpoint_time_iso",
+            self.is_iso_datetime(forecast.get("endpoint_time_iso")),
+        )
+        unc = forecast.get("uncertainty_km")
+        self.check(
+            "forecast.uncertainty_km",
+            self.is_number(unc) and unc >= 0,
+        )
+        path = forecast.get("path")
+        self.check(
+            "forecast.path",
+            isinstance(path, list)
+            and len(path) >= 2
+            and all(
+                isinstance(point, list)
+                and len(point) == 3
+                and self.is_lon_lat(point[:2])
+                and isinstance(point[2], str)
+                for point in path
+            ),
+        )
+        self.check(
+            "forecast.ensemble",
+            isinstance(forecast.get("ensemble"), list),
+        )
+
     def validate_summary(self):
         summary = self.data.get("summary")
 
@@ -624,6 +671,8 @@ class Validator:
         print()
 
         self.validate_drift()
+
+        self.validate_forecast()
         print()
 
         self.validate_vessels()

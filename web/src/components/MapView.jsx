@@ -7,6 +7,10 @@ const COLORS = {
   track: '#E0A54B',
   gap: '#5CC8D4',
   drift: '#FFFFFF',
+  // forward drift is a different question from the hindcast -- where the oil
+  // is going, not where it came from -- so it gets its own colour rather than
+  // a second white dotted line nobody can tell apart
+  forecast: '#8CE0A8',
 }
 
 const MIN_ZOOM = 1
@@ -17,6 +21,7 @@ const DEFAULT_LAYERS = {
   aisTrack: true,
   aisGap: true,
   drift: true,
+  forecast: true,
   darkContact: true,
   prediction: true,
 }
@@ -260,6 +265,31 @@ export default function MapView({
       }
     }
 
+    if (layers.forecast && result.forecast?.path?.length) {
+      strokePath(result.forecast.path.filter(isPoint), COLORS.forecast, 1.8, [5, 4])
+      if (isPoint(result.forecast.endpoint)) {
+        const end = project(result.forecast.endpoint)
+        const kmPerPixel = ((bbox[3] - bbox[1]) * 111) / map.height
+        const radius = Math.max(2, (result.forecast.uncertainty_km || 0) / kmPerPixel)
+        context.save()
+        context.fillStyle = 'rgba(140, 224, 168, 0.10)'
+        context.strokeStyle = COLORS.forecast
+        context.lineWidth = 1
+        context.setLineDash([3, 4])
+        context.beginPath()
+        context.arc(end.x, end.y, radius, 0, Math.PI * 2)
+        context.fill()
+        context.stroke()
+        context.setLineDash([])
+        // a small arrowhead so the direction of travel is unambiguous
+        context.beginPath()
+        context.arc(end.x, end.y, 3.5, 0, Math.PI * 2)
+        context.fillStyle = COLORS.forecast
+        context.fill()
+        context.restore()
+      }
+    }
+
     result.vessels.forEach((vessel) => {
       const selected = selectedMmsi === vessel.mmsi || highlight?.vessel?.mmsi === vessel.mmsi
       const alpha = selectedMmsi == null || selected || highlight?.kind === 'slick' ? 1 : 0.22
@@ -428,7 +458,8 @@ export default function MapView({
                 <LayerToggle label="Oil slick" color="#E0503C" checked={layers.slick} onChange={() => toggleLayer('slick')} />
                 <LayerToggle label="AIS track" color="#E0A54B" checked={layers.aisTrack} onChange={() => toggleLayer('aisTrack')} />
                 <LayerToggle label="AIS gap / blackout" color="#5CC8D4" checked={layers.aisGap} onChange={() => toggleLayer('aisGap')} />
-                <LayerToggle label="Drift path" color="#FFFFFF" checked={layers.drift} onChange={() => toggleLayer('drift')} />
+                <LayerToggle label="Drift path (hindcast)" color="#FFFFFF" checked={layers.drift} onChange={() => toggleLayer('drift')} />
+                <LayerToggle label="Forecast (forward)" color="#8CE0A8" checked={layers.forecast} onChange={() => toggleLayer('forecast')} />
                 <LayerToggle label="Dark contact" color="#5CC8D4" checked={layers.darkContact} onChange={() => toggleLayer('darkContact')} />
                 <LayerToggle label="Prediction zone" color="#7fd4de" checked={layers.prediction} onChange={() => toggleLayer('prediction')} />
                 <label className="opacity-control">
@@ -479,7 +510,8 @@ export default function MapView({
           <span><i className="slick-key" />Oil slick</span>
           <span><i className="track-key" />AIS track</span>
           <span><i className="gap-key" />AIS gap / blackout</span>
-          <span><i className="drift-key" />Drift path</span>
+          <span><i className="drift-key" />Drift path (back)</span>
+          <span><i className="forecast-key" />Forecast (forward)</span>
           <span><i className="dark-key" />Dark contact</span>
         </div>
         <span>Drag to pan · Scroll to zoom</span>

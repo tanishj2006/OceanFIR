@@ -72,6 +72,25 @@ pipeline is ready it drops in and nothing else changes.
     "ensemble": [[[lon, lat], ...], ...]   // optional, N back-tracks, may be []
   },
 
+  "forecast": {                  // null when not run. Forward advection: where
+                                 //   the slick is GOING. drift above is where it
+                                 //   came FROM. Both are asked for by the PS.
+    "method": "forward-advection",
+    "endpoint": [lon, lat],      // slick head at the end of the horizon
+    "endpoint_time_iso": "2023-06-20T12:02:34Z",
+    "uncertainty_km": 5.2,       // 90th pct spread of the ensemble endpoints
+    "path": [[lon, lat, "ISO8601"], ...],   // head forwards in time
+    "ensemble": [[[lon, lat], ...], ...],
+    "forcing": {                 // provenance of the current used, so nobody
+                                 //   has to guess where -0.25 m/s came from
+      "u_ms": -0.25, "v_ms": -0.12,
+      "wind_ms": [0.0, 0.0],
+      "effective_u_ms": -0.25, "effective_v_ms": -0.12,
+      "n_ensemble": 25,
+      "source": "free text -- where these numbers came from"
+    }
+  },
+
   "vessels": [
     {
       "mmsi": 367481920,
@@ -174,6 +193,23 @@ requests changes. Do not both edit them.
 ---
 
 ## 4. Changelog
+
+**10 Sept — `forecast` added, and `drift` gains `forcing`. Additive, nothing breaks.**
+The PS asks for drift "backward and forward"; only the hindcast existed. A new
+top-level `forecast` block carries the forward advection — same integration and
+the same 25-member ensemble as `back_advect`, sign flipped, so the two cannot
+drift apart as the model is tuned. It is `null` when not run, like `drift`, and
+the UI must handle that. Both blocks now carry `forcing`, recording the current
+and wind actually used plus a free-text `source`, because the PS names
+oceanographic and meteorological data as inputs and a bare `-0.25` in a shell
+history is not provenance. The values live in `scenes/<id>/scene.json` per scene,
+not in `drift.py`.
+
+**Age (`detection.slick.age_hours_est`) stays `null` on the real path, deliberately.**
+Age from a single SAR pass needs a spreading model with an assumed discharge
+volume. We do not know the volume, so any figure would be invented. Two passes
+over the same slick give it properly. The PS says "if feasible" — this is us
+saying it is not, rather than printing a number we cannot defend.
 
 **9 Sept — the pipeline now emits v2.0 directly. No schema change.**
 `oceanfir.py` used to write a flat v1 document that `api.py` lifted into v2 on

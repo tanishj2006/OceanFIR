@@ -60,20 +60,31 @@ def _effective_current(u_ms, v_ms, wind):
     )
 
 
-def _backward_step(
+def _step(
     lon,
     lat,
     current_time,
     step_min,
     u_ms,
     v_ms,
+    direction=-1,
 ):
     """
-    Move one timestep backward using the supplied current vector.
+    Move one timestep along the supplied current vector.
+
+    direction = -1 walks BACKWARD in time towards the discharge point, which
+    is what attribution needs. direction = +1 walks FORWARD, which is what
+    response needs: where the slick will be when a vessel gets there.
+
+    Both are the same integration; only the sign of the displacement and of
+    the clock differ, so they cannot drift apart as the model is tuned.
 
     u_ms = east/west velocity in m/s
     v_ms = north/south velocity in m/s
     """
+    if direction not in (-1, 1):
+        raise ValueError("direction must be -1 (backward) or +1 (forward)")
+
     step_seconds = float(step_min) * 60.0
 
     # Forward displacement during this timestep.
@@ -93,16 +104,32 @@ def _backward_step(
     delta_lon = dx_m / meters_per_degree_lon
     delta_lat = dy_m / METERS_PER_DEGREE_LAT
 
-    # BACKWARD advection means subtracting the forward displacement.
-    previous_lon = lon - delta_lon
-    previous_lat = lat - delta_lat
+    # Backward advection subtracts the displacement and rewinds the clock;
+    # forward advection adds it and advances the clock.
+    next_lon = lon + direction * delta_lon
+    next_lat = lat + direction * delta_lat
 
-    previous_time = current_time - timedelta(minutes=step_min)
+    next_time = current_time + timedelta(
+        minutes=direction * step_min
+    )
 
     return (
-        float(previous_lon),
-        float(previous_lat),
-        previous_time,
+        float(next_lon),
+        float(next_lat),
+        next_time,
+    )
+
+
+def _backward_step(lon, lat, current_time, step_min, u_ms, v_ms):
+    """Kept so anything already importing this name still works."""
+    return _step(
+        lon=lon,
+        lat=lat,
+        current_time=current_time,
+        step_min=step_min,
+        u_ms=u_ms,
+        v_ms=v_ms,
+        direction=-1,
     )
 
 
@@ -122,8 +149,9 @@ def _run_trajectory(
     step_min,
     u_ms,
     v_ms,
+    direction=-1,
 ):
-    """Run one deterministic backward trajectory."""
+    """Run one deterministic trajectory. direction -1 back, +1 forward."""
     lon = float(head[0])
     lat = float(head[1])
     current_time = t0
@@ -133,13 +161,14 @@ def _run_trajectory(
     n_steps = int(round(hours * 60.0 / step_min))
 
     for _ in range(n_steps):
-        lon, lat, current_time = _backward_step(
+        lon, lat, current_time = _step(
             lon=lon,
             lat=lat,
             current_time=current_time,
             step_min=step_min,
             u_ms=u_ms,
             v_ms=v_ms,
+            direction=direction,
         )
 
         path.append(
@@ -157,6 +186,7 @@ def _run_perturbed_trajectory(
     speed,
     heading_rad,
     rng,
+    direction=-1,
 ):
     """
     Run one ensemble trajectory.
@@ -197,13 +227,14 @@ def _run_perturbed_trajectory(
     )
 
     for _ in range(n_steps):
-        lon, lat, current_time = _backward_step(
+        lon, lat, current_time = _step(
             lon=lon,
             lat=lat,
             current_time=current_time,
             step_min=step_min,
             u_ms=perturbed_u,
             v_ms=perturbed_v,
+            direction=direction,
         )
 
         path.append([lon, lat])
@@ -253,9 +284,14 @@ def back_advect(
     wind=(0.0, 0.0),
     n_ensemble=25,
     seed=0,
+    _direction=-1,
 ):
     """
     Backward-advection estimate of the oil slick's origin.
+
+    _direction is private: forecast() below reuses this whole function with
+    +1 so the forward and backward models can never diverge. Call forecast()
+    rather than passing it yourself.
 
     Parameters
     ----------
@@ -361,6 +397,7 @@ def back_advect(
         step_min=step_min,
         u_ms=effective_u,
         v_ms=effective_v,
+        direction=_direction,
     )
 
     # The final point is the estimated origin.
@@ -403,6 +440,7 @@ def back_advect(
             speed=speed,
             heading_rad=heading_rad,
             rng=rng,
+            direction=_direction,
         )
 
         ensemble.append(trajectory)
@@ -418,7 +456,29 @@ def back_advect(
         endpoints
     )
 
-    # ----------------------------- exact Lane E output
+    # ----------------------------- output
+
+    forcing = {
+        "u_ms": float(u_ms),
+        "v_ms": float(v_ms),
+        "wind_ms": [float(wind[0]), float(wind[1])],
+        "effective_u_ms": float(effective_u),
+        "effective_v_ms": float(effective_v),
+        "n_ensemble": int(n_ensemble),
+    }
+
+    if _direction == 1:
+        # Forward: the last point is where the slick is heading, not where
+        # it came from, so it is named for what it is.
+        return {
+            "method": "forward-advection",
+            "endpoint": origin,
+            "endpoint_time_iso": origin_time_iso,
+            "uncertainty_km": uncertainty_km,
+            "path": path,
+            "ensemble": ensemble,
+            "forcing": forcing,
+        }
 
     return {
         "method": "back-advection",
@@ -427,7 +487,43 @@ def back_advect(
         "uncertainty_km": uncertainty_km,
         "path": path,
         "ensemble": ensemble,
+        "forcing": forcing,
     }
+
+
+def forecast(
+    head,
+    t0_iso,
+    hours=12,
+    step_min=30,
+    u_ms=-0.25,
+    v_ms=-0.12,
+    wind=(0.0, 0.0),
+    n_ensemble=25,
+    seed=0,
+):
+    """
+    Forward-advection forecast of where the slick will drift.
+
+    Same integration as back_advect, same ensemble, sign flipped. Returns
+    "endpoint" and "endpoint_time_iso" instead of "origin", plus the 90th
+    percentile spread of the ensemble endpoints as uncertainty_km.
+
+    Attribution needs the origin; response needs this. The problem statement
+    asks for both directions.
+    """
+    return back_advect(
+        head=head,
+        t0_iso=t0_iso,
+        hours=hours,
+        step_min=step_min,
+        u_ms=u_ms,
+        v_ms=v_ms,
+        wind=wind,
+        n_ensemble=n_ensemble,
+        seed=seed,
+        _direction=1,
+    )
 
 
 if __name__ == "__main__":
@@ -444,4 +540,16 @@ if __name__ == "__main__":
     print(
         "number of path points:",
         len(result["path"]),
+    )
+
+    ahead = forecast(
+        head=[-89.9, 28.9],
+        t0_iso="2026-09-09T12:00:00Z",
+    )
+
+    print("endpoint:", ahead["endpoint"])
+    print("endpoint_time_iso:", ahead["endpoint_time_iso"])
+    print(
+        "forecast uncertainty_km:",
+        ahead["uncertainty_km"],
     )
