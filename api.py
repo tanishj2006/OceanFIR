@@ -95,8 +95,15 @@ def scenes():
             "has_result": (ROOT / "mock" / "data.json").exists()}]
     for d in sorted(SCENES.iterdir()) if SCENES.exists() else []:
         if d.is_dir():
-            out.append({"id": d.name, "name": d.name,
-                        "time_iso": None,
+            cfg = {}
+            try:
+                cfg = json.load(open(d / "scene.json"))
+            except Exception:
+                pass
+            out.append({"id": d.name,
+                        # scene.json can carry a human name; the folder is the fallback
+                        "name": cfg.get("name") or d.name,
+                        "time_iso": (cfg.get("time") + "Z") if cfg.get("time") else None,
                         "thumb": f"/static/{d.name}/sar_sea.png",
                         "has_result": (d / "data.json").exists()})
     return out

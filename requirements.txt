@@ -5,6 +5,7 @@ scikit-image>=0.21
 fastapi>=0.110
 uvicorn[standard]>=0.27
 reportlab>=4.0
+requests>=2.31          # smoke_test.py only
 
 # --- learned detector (optional; the classical path needs none of this) ---
 # macOS x86_64 has no PyTorch wheel past 2.2.2, and that build is compiled

@@ -119,7 +119,13 @@ button { font: inherit; }
   width: 100%;
   max-width: 1680px;
   margin: 0 auto;
-  min-height: calc(100vh - 108px);
+  /* start, not stretch: the two columns size themselves. Stretching made the
+     map grow every time an accordion opened on the right. */
+  align-items: start;
+}
+
+.evidence-panel {
+  max-height: calc(100vh - 132px);
 }
 
 .map-status {

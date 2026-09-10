@@ -27,6 +27,10 @@ export function sceneAssetUrl(result, filename, sceneId) {
   return `${API_BASE}/static/${encodeURIComponent(folder)}/${encodeURIComponent(filename)}`
 }
 
+export function scenesUrl() {
+  return `${API_BASE}/api/scenes`
+}
+
 export function evidenceUrl(sceneId) {
   return `${API_BASE}/api/evidence/${encodeURIComponent(sceneId)}`
 }

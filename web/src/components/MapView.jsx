@@ -94,8 +94,24 @@ export default function MapView({
   const [slickOpacity, setSlickOpacity] = useState(0.22)
   const [maskOpacity, setMaskOpacity] = useState(0.45)
   const [tooltip, setTooltip] = useState(null)
+  const [layersOpen, setLayersOpen] = useState(false)
+  const layersRef = useRef(null)
 
   viewRef.current = view
+
+  useEffect(() => {
+    if (!layersOpen) return undefined
+    const onDown = (e) => {
+      if (layersRef.current && !layersRef.current.contains(e.target)) setLayersOpen(false)
+    }
+    const onKey = (e) => { if (e.key === 'Escape') setLayersOpen(false) }
+    document.addEventListener('pointerdown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('pointerdown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [layersOpen])
 
   useEffect(() => {
     const element = containerRef.current
@@ -369,6 +385,14 @@ export default function MapView({
 
   const toggleLayer = (key) => setLayers((current) => ({ ...current, [key]: !current[key] }))
 
+  // The map block takes its height from the SCENE's own geometry, not from
+  // whatever the evidence panel happens to be doing. Before this, .canvas-wrap
+  // was flex:1 inside a stretched grid row, so expanding an accordion on the
+  // right grew the map too -- and the imagery sat centred in the extra space.
+  const [bLonMin, bLatMin, bLonMax, bLatMax] = result.scene.bbox
+  const geoAspect = ((bLonMax - bLonMin) *
+    Math.cos(((bLatMin + bLatMax) / 2) * Math.PI / 180)) / (bLatMax - bLatMin)
+
   const baseMap = size.width && size.height ? fittedMap(size, result.scene.bbox) : null
   const imageryStyle = baseMap ? {
     left: baseMap.x,
@@ -388,11 +412,41 @@ export default function MapView({
           <span> · {result.scene.mode} · {result.scene.polarisation}</span>
         </div>
         <div className="map-toolbar-status">
+          <div className="layers-menu" ref={layersRef}>
+            <button
+              type="button"
+              className="layers-trigger"
+              aria-expanded={layersOpen}
+              aria-haspopup="true"
+              onClick={() => setLayersOpen((open) => !open)}
+            >
+              Layers <span className="chev" aria-hidden="true">{layersOpen ? '▴' : '▾'}</span>
+            </button>
+            {layersOpen && (
+              <div className="layers-panel" role="group" aria-label="Layer controls">
+                <h2>Layers</h2>
+                <LayerToggle label="Oil slick" color="#E0503C" checked={layers.slick} onChange={() => toggleLayer('slick')} />
+                <LayerToggle label="AIS track" color="#E0A54B" checked={layers.aisTrack} onChange={() => toggleLayer('aisTrack')} />
+                <LayerToggle label="AIS gap / blackout" color="#5CC8D4" checked={layers.aisGap} onChange={() => toggleLayer('aisGap')} />
+                <LayerToggle label="Drift path" color="#FFFFFF" checked={layers.drift} onChange={() => toggleLayer('drift')} />
+                <LayerToggle label="Dark contact" color="#5CC8D4" checked={layers.darkContact} onChange={() => toggleLayer('darkContact')} />
+                <LayerToggle label="Prediction zone" color="#7fd4de" checked={layers.prediction} onChange={() => toggleLayer('prediction')} />
+                <label className="opacity-control">
+                  <span>Slick opacity</span>
+                  <input type="range" min="0.05" max="0.6" step="0.01" value={slickOpacity} onChange={(event) => setSlickOpacity(Number(event.target.value))} />
+                </label>
+                <label className="opacity-control">
+                  <span>Detection mask</span>
+                  <input type="range" min="0" max="0.8" step="0.01" value={maskOpacity} onChange={(event) => setMaskOpacity(Number(event.target.value))} />
+                </label>
+              </div>
+            )}
+          </div>
           <span className="status-ok">SAR image loaded</span>
           {result.meta?.source === 'mock' && <span className="mock-badge">Mock data</span>}
         </div>
       </div>
-      <div className="canvas-wrap" ref={containerRef}>
+      <div className="canvas-wrap" ref={containerRef} style={{ aspectRatio: geoAspect }}>
         <div className="scene-layers" style={imageryStyle}>
           <img className="scene-image" src={assetUrls?.sceneUrl} alt="Sentinel-1 SAR scene" />
           <img className="scene-mask" src={assetUrls?.maskUrl} alt="" style={{ opacity: maskOpacity }} />
@@ -413,23 +467,6 @@ export default function MapView({
           <button type="button" className="reset-view" onClick={() => setView({ zoom: MIN_ZOOM, panX: 0, panY: 0 })}>Fit</button>
           <span className="zoom-readout">{Math.round(view.zoom * 100)}%</span>
         </div>
-        <aside className="layers-panel" aria-label="Layer controls">
-          <h2>Layers</h2>
-          <LayerToggle label="Oil slick" color="#E0503C" checked={layers.slick} onChange={() => toggleLayer('slick')} />
-          <LayerToggle label="AIS track" color="#E0A54B" checked={layers.aisTrack} onChange={() => toggleLayer('aisTrack')} />
-          <LayerToggle label="AIS gap / blackout" color="#5CC8D4" checked={layers.aisGap} onChange={() => toggleLayer('aisGap')} />
-          <LayerToggle label="Drift path" color="#FFFFFF" checked={layers.drift} onChange={() => toggleLayer('drift')} />
-          <LayerToggle label="Dark contact" color="#5CC8D4" checked={layers.darkContact} onChange={() => toggleLayer('darkContact')} />
-          <LayerToggle label="Prediction zone" color="#7fd4de" checked={layers.prediction} onChange={() => toggleLayer('prediction')} />
-          <label className="opacity-control">
-            <span>Slick opacity</span>
-            <input type="range" min="0.05" max="0.6" step="0.01" value={slickOpacity} onChange={(event) => setSlickOpacity(Number(event.target.value))} />
-          </label>
-          <label className="opacity-control">
-            <span>Detection mask</span>
-            <input type="range" min="0" max="0.8" step="0.01" value={maskOpacity} onChange={(event) => setMaskOpacity(Number(event.target.value))} />
-          </label>
-        </aside>
         {tooltipCopy && (
           <div className="map-tooltip" style={{ left: tooltip.x + 14, top: tooltip.y + 14 }} role="tooltip">
             <strong>{tooltipCopy.title}</strong>

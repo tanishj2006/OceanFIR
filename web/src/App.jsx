@@ -4,11 +4,9 @@ import EvidencePanel from './components/EvidencePanel'
 import VesselTable from './components/VesselTable'
 import ScoreBreakdown from './components/ScoreBreakdown'
 import ExonerationRecord from './components/ExonerationRecord'
-import { evidenceUrl, resultUrl, sceneAssetUrl, sceneIdFromUrl } from './api'
+import { evidenceUrl, resultUrl, sceneAssetUrl, sceneIdFromUrl, scenesUrl } from './api'
 import { buildReportText, loadImage, primaryVessel, validateResult } from './sceneUtils'
 import './components/AttributionDeck.css'
-
-const SCENE_ID = sceneIdFromUrl('mock')
 
 function topScorer(result) {
   const vessels = result?.vessels ?? []
@@ -24,23 +22,46 @@ export default function App() {
   const [selectedMmsi, setSelectedMmsi] = useState(null)
   const [highlight, setHighlight] = useState(null)
   const [notice, setNotice] = useState('')
+  // Which scene is on screen. Starts from ?scene= so a link still opens a
+  // specific one, but it is state now: switching no longer reloads the page,
+  // which matters when you are flipping between scenes in front of an audience.
+  const [sceneId, setSceneId] = useState(() => sceneIdFromUrl('mock'))
+  const [scenes, setScenes] = useState([])
+
+  useEffect(() => {
+    let cancelled = false
+    fetch(scenesUrl())
+      .then((r) => (r.ok ? r.json() : []))
+      .then((list) => { if (!cancelled && Array.isArray(list)) setScenes(list) })
+      .catch(() => { /* the switcher just stays hidden */ })
+    return () => { cancelled = true }
+  }, [])
+
+  useEffect(() => {
+    try {
+      const url = new URL(window.location.href)
+      url.searchParams.set('scene', sceneId)
+      window.history.replaceState({}, '', url)
+    } catch { /* deep link is a nicety, never a requirement */ }
+  }, [sceneId])
 
   useEffect(() => {
     let cancelled = false
     async function fetchScene() {
       try {
         setStatus('loading')
-        const response = await fetch(resultUrl(SCENE_ID))
+        const response = await fetch(resultUrl(sceneId))
         if (!response.ok) throw new Error(`Scene request failed (${response.status}).`)
         const sceneResult = validateResult(await response.json())
-        // pass SCENE_ID: assets live under the scene FOLDER, which is not the
+        // pass sceneId: assets live under the scene FOLDER, which is not the
         // same string as result.scene.id on a real pipeline run
-        const sceneUrl = sceneAssetUrl(sceneResult, sceneResult.scene.image, SCENE_ID)
-        const maskUrl = sceneAssetUrl(sceneResult, sceneResult.scene.mask, SCENE_ID)
+        const sceneUrl = sceneAssetUrl(sceneResult, sceneResult.scene.image, sceneId)
+        const maskUrl = sceneAssetUrl(sceneResult, sceneResult.scene.mask, sceneId)
         await Promise.all([loadImage(sceneUrl), loadImage(maskUrl)])
         if (cancelled) return
         setAssetUrls({ sceneUrl, maskUrl })
         setResult(sceneResult)
+        setHighlight(null)
         // On a no_attribution scene there is no accused or suspect vessel, so
         // primaryVessel() returns null and the score panel opens empty. Fall
         // back to the highest scorer: the point of the panel there is to show
@@ -56,7 +77,7 @@ export default function App() {
     }
     fetchScene()
     return () => { cancelled = true }
-  }, [])
+  }, [sceneId])
 
   useEffect(() => {
     if (!notice) return undefined
@@ -66,15 +87,15 @@ export default function App() {
 
   async function generateReport() {
     if (!result) return
-    const sceneId = result.meta?.source === 'mock' ? 'mock' : SCENE_ID
+    const reportScene = result.meta?.source === 'mock' ? 'mock' : sceneId
     try {
-      const response = await fetch(evidenceUrl(sceneId))
+      const response = await fetch(evidenceUrl(reportScene))
       if (response.ok) {
         const blob = await response.blob()
         const url = URL.createObjectURL(blob)
         const link = document.createElement('a')
         link.href = url
-        link.download = `oceanfir-${sceneId}.pdf`
+        link.download = `oceanfir-${reportScene}.pdf`
         link.click()
         URL.revokeObjectURL(url)
         setNotice('Evidence brief downloaded.')
@@ -87,7 +108,7 @@ export default function App() {
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = `oceanfir-${sceneId}-report.txt`
+    link.download = `oceanfir-${reportScene}-report.txt`
     link.click()
     URL.revokeObjectURL(url)
     setNotice('Client-side report downloaded.')
@@ -109,6 +130,15 @@ export default function App() {
     }
   }
 
+  const sceneIndex = scenes.findIndex((s) => s.id === sceneId)
+  const currentScene = sceneIndex >= 0 ? scenes[sceneIndex] : null
+  const canSwitch = scenes.length > 1 && sceneIndex >= 0
+  const step = (delta) => {
+    if (!canSwitch) return
+    const next = (sceneIndex + delta + scenes.length) % scenes.length
+    setSceneId(scenes[next].id)
+  }
+
   const vessels = result?.vessels ?? []
   const selectedVessel = vessels.find((v) => v.mmsi === selectedMmsi) ?? null
   const summary = result?.summary ?? null
@@ -125,6 +155,16 @@ export default function App() {
           </div>
         </div>
         <div className="header-actions">
+          {canSwitch && (
+            <div className="scene-switch" role="group" aria-label="Scene">
+              <button type="button" onClick={() => step(-1)} aria-label="Previous scene">&#8249;</button>
+              <div className="scene-switch-label">
+                <span className="scene-name">{currentScene?.name || sceneId}</span>
+                <span className="scene-count">{sceneIndex + 1} of {scenes.length}</span>
+              </div>
+              <button type="button" onClick={() => step(1)} aria-label="Next scene">&#8250;</button>
+            </div>
+          )}
           <div className="header-status" aria-live="polite">
             {status === 'ready' && <span className="status-ok">SAR image loaded</span>}
             {status === 'loading' && <span>Loading Sentinel-1 scene…</span>}
