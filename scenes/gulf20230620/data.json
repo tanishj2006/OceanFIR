@@ -2,9 +2,9 @@
  "meta": {
   "version": "2.0",
   "source": "pipeline",
-  "generated_utc": "2026-09-09T18:50:32Z",
+  "generated_utc": "2026-09-10T04:40:03Z",
   "detector": "unet-resnet34",
-  "runtime_s": 36.7
+  "runtime_s": 36.2
  },
  "scene": {
   "id": "sar_sea",

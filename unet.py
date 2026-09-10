@@ -38,7 +38,12 @@ import numpy as np
 
 from oceanfir import load_scene, mask_to_slick
 
-WEIGHTS = os.environ.get("OCEANFIR_UNET", "unet_oil.pt")
+# Resolved against THIS file's directory, not the working directory:
+# /api/analyze runs the pipeline with cwd set to the scene folder, where a
+# bare "unet_oil.pt" does not exist -- clicking analyse would fail with the
+# "no weights" wall of text while the weights sat in the repo root.
+_HERE = os.path.dirname(os.path.abspath(__file__))
+WEIGHTS = os.environ.get("OCEANFIR_UNET", os.path.join(_HERE, "unet_oil.pt"))
 CLASSES = ["sea", "oil"]
 _MODEL = None
 

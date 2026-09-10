@@ -126,6 +126,11 @@ def analyze(req: AnalyzeReq):
            "--bbox", *[str(x) for x in c["bbox"]],
            "--time", c["time"], "--window", str(req.window_h),
            "--out", str(d / "data.json")]
+    # Extra pipeline flags from scene.json. Without these a live /api/analyze
+    # runs the CLASSICAL detector with no drift and overwrites a U-Net result
+    # that took real work to produce -- i.e. clicking "analyse" on stage would
+    # silently downgrade the scene. Absent key = old behaviour.
+    cmd += [str(x) for x in c.get("args", [])]
     r = subprocess.run(cmd, capture_output=True, text=True, cwd=str(d))
     if r.returncode != 0:
         raise HTTPException(500, f"pipeline failed: {r.stderr[-600:]}")

@@ -1,0 +1,11 @@
+{
+  "name": "Mississippi Delta / Gulf of Mexico",
+  "image": "sar_sea.png",
+  "ais": "data/AIS_2023_06_20.csv",
+  "bbox": [-90.821, 28.133, -88.555, 29.2],
+  "time": "2023-06-20T00:02:34",
+  "args": ["--detector", "unet",
+           "--drift-hours", "12",
+           "--top", "5",
+           "--mask", "data_unet.png"]
+}
