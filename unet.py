@@ -99,7 +99,35 @@ def load_model(weights=None, device=None):
     return model
 
 
-def predict_probs(im, model=None, tile=384, overlap=96, batch=8):
+def _predict_batch(model, t, tta=True):
+    """Softmax probabilities for one batch of tiles, optionally 8-way TTA.
+
+    Bianchi, Espeseth & Borch (2020), OFCN, Sec. 3.2.4: at inference they
+    generate "8 predictions from all the possible 90 degree rotations and flips
+    of each window" and merge them. A SAR slick has no canonical orientation,
+    so averaging the dihedral group of the square removes the orientation bias
+    the network picked up from the training crops. Costs 8x inference on a
+    900 px scene, which is a couple of seconds, and needs no retraining.
+    """
+    import torch
+    if not tta:
+        return torch.softmax(model(t), dim=1).cpu().numpy()
+
+    acc = None
+    for k in range(4):                       # four 90-degree rotations
+        rot = torch.rot90(t, k, dims=(2, 3))
+        for flip in (False, True):           # each with and without a flip
+            x = torch.flip(rot, dims=(3,)) if flip else rot
+            p = torch.softmax(model(x), dim=1)
+            # undo the transform on the prediction before averaging
+            if flip:
+                p = torch.flip(p, dims=(3,))
+            p = torch.rot90(p, -k, dims=(2, 3))
+            acc = p if acc is None else acc + p
+    return (acc / 8.0).cpu().numpy()
+
+
+def predict_probs(im, model=None, tile=384, overlap=96, batch=8, tta=False):
     """Per-pixel class probabilities for a whole scene, H x W x len(CLASSES).
 
     The model was trained on 384 px crops, so the scene is tiled rather than
@@ -136,7 +164,7 @@ def predict_probs(im, model=None, tile=384, overlap=96, batch=8):
                 crops.append(im[y:y + tile, x:x + tile])
                 if len(crops) == batch or (y == ys[-1] and x == xs[-1]):
                     t = torch.from_numpy(np.stack(crops)[:, None].astype(np.float32)).to(dev)
-                    p = torch.softmax(model(t), dim=1).cpu().numpy()
+                    p = _predict_batch(model, t, tta)
                     for (yy, xx), pr in zip(coords, p):
                         acc[:, yy:yy + tile, xx:xx + tile] += pr * w1
                         wgt[yy:yy + tile, xx:xx + tile] += w1
@@ -161,9 +189,9 @@ def standardize(im):
     return (im - im.mean()) / (im.std() + 1e-6)
 
 
-def segment_unet(im, model=None, min_oil_prob=0.5):
+def segment_unet(im, model=None, min_oil_prob=0.5, tta=False):
     """Returns (oil mask, oil probability map)."""
-    p = predict_probs(standardize(im), model)
+    p = predict_probs(standardize(im), model, tta=tta)
     oil = p[..., 1]
     return oil >= min_oil_prob, oil
 
