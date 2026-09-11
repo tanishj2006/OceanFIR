@@ -1,0 +1,11 @@
+{
+ "g_mean": 0.7971879722600091,
+ "tau": 0.3,
+ "precision": 0.5036330608537694,
+ "recall": 0.8563706563706563,
+ "f1": 0.6342579353731771,
+ "n_regions": 5533,
+ "n_oil": 1295,
+ "n_lookalike": 4238,
+ "cv": "GroupKFold by scene (leave-one-batch-out, Kubat et al. 1998)"
+}
