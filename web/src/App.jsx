@@ -148,9 +148,15 @@ export default function App() {
     <div className="app-shell">
       <header className="app-header">
         <div className="brand">
-          <img className="brand-logo" src="/oceanfir-logo.png" alt="OceanFIR" />
+          {/* The emblem, not the full square logo. The header slot is 44px tall
+              and the supplied artwork has the wordmark baked in underneath the
+              globe -- contained to 44px that text renders about 6px high and is
+              unreadable. So the globe carries the mark and the name is real
+              text, which stays crisp at any size and is selectable. The
+              emblem doubles as the favicon. */}
+          <img className="brand-mark" src="/oceanfir-mark.png" alt="" />
           <div>
-            <p className="eyebrow">Maritime intelligence</p>
+            <p className="brand-word"><span>Ocean</span><b>FIR</b></p>
             <p className="brand-kicker">Sentinel-1 investigation workspace</p>
           </div>
         </div>

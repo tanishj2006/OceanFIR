@@ -40,14 +40,26 @@ button { font: inherit; }
   min-width: 0;
 }
 
-.brand-logo {
+.brand-mark {
   display: block;
-  height: 44px;
-  width: auto;
-  max-width: 240px;
+  height: 46px;
+  width: 46px;
   object-fit: contain;
-  object-position: left center;
+  flex: none;
 }
+
+/* "Ocean" light, "FIR" bold blue -- the same treatment as the supplied
+   artwork, but as live text so it stays sharp at every size */
+.brand-word {
+  margin: 0;
+  font-size: 25px;
+  line-height: 1;
+  letter-spacing: -.01em;
+  color: #e6f2f5;
+}
+
+.brand-word span { font-weight: 300; }
+.brand-word b { font-weight: 800; color: #35b6e8; }
 
 .brand-kicker {
   margin: 2px 0 0;
@@ -163,7 +175,8 @@ button { font: inherit; }
     grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.95fr);
     min-height: calc(100vh - 100px);
   }
-  .brand-logo { height: 38px; }
+  .brand-mark { height: 38px; width: 38px; }
+  .brand-word { font-size: 21px; }
 }
 
 @media (max-width: 1100px) {
