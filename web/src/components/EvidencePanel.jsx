@@ -95,11 +95,6 @@ export default function EvidencePanel({ result, highlight, selectedMmsi }) {
                   target="_blank"
                   rel="noreferrer noopener"
                 >Equasis — owner, class, PSC record ↗</a>
-                <a
-                  href="https://www.iomou.org/inspmain.htm"
-                  target="_blank"
-                  rel="noreferrer noopener"
-                >Indian Ocean MoU — inspection history ↗</a>
               </div>
             </>
           ) : <p>No accused or suspect vessel in this result.</p>}

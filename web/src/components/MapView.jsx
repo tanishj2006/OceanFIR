@@ -193,6 +193,19 @@ export default function MapView({
       }
     }
 
+    // Forward drift. Same hit test as the hindcast circle above: inside the
+    // uncertainty disc, or within 8 px of its edge so the ring itself is
+    // hoverable when the fill is nearly transparent.
+    if (layers.forecast && data.forecast?.endpoint && Number.isFinite(data.forecast.uncertainty_km)) {
+      const end = project(data.forecast.endpoint)
+      const kmPerPixel = ((geometry.bbox[3] - geometry.bbox[1]) * 111) / geometry.map.height
+      const radius = Math.max(2, data.forecast.uncertainty_km / kmPerPixel)
+      const distance = Math.hypot(local.x - end.x, local.y - end.y)
+      if (Math.abs(distance - radius) < 8 || distance <= radius) {
+        if (!nearest) nearest = { kind: 'forecast', distance, forecast: data.forecast }
+      }
+    }
+
     if (!nearest && layers.slick) {
       const polygon = data.detection.slick.polygon.filter(isPoint).map(project)
       if (polygon.length > 2 && pointInPolygon(local, polygon)) {
@@ -266,13 +279,13 @@ export default function MapView({
     }
 
     if (layers.forecast && result.forecast?.path?.length) {
-      strokePath(result.forecast.path.filter(isPoint), COLORS.forecast, 1.8, [5, 4])
+      strokePath(result.forecast.path.filter(isPoint), COLORS.forecast, highlight?.kind === 'forecast' ? 2.6 : 1.8, [5, 4])
       if (isPoint(result.forecast.endpoint)) {
         const end = project(result.forecast.endpoint)
         const kmPerPixel = ((bbox[3] - bbox[1]) * 111) / map.height
         const radius = Math.max(2, (result.forecast.uncertainty_km || 0) / kmPerPixel)
         context.save()
-        context.fillStyle = 'rgba(140, 224, 168, 0.10)'
+        context.fillStyle = highlight?.kind === 'forecast' ? 'rgba(140, 224, 168, 0.20)' : 'rgba(140, 224, 168, 0.10)'
         context.strokeStyle = COLORS.forecast
         context.lineWidth = 1
         context.setLineDash([3, 4])
@@ -580,6 +593,20 @@ function tooltipContent(hit) {
         hit.drift.method || 'Back-advection',
         timestamp(hit.drift.origin_time_iso),
         formatKm(hit.drift.uncertainty_km) ? `Uncertainty ${formatKm(hit.drift.uncertainty_km)}` : null,
+        hit.drift.ensemble?.length ? `${hit.drift.ensemble.length}-member ensemble` : null,
+      ].filter(Boolean),
+    }
+  }
+  if (hit.kind === 'forecast') {
+    // Mirrors the hindcast tooltip. The radius is the spread of the ensemble,
+    // not a typed-in figure, so it is worth naming the member count.
+    return {
+      title: 'Forecast zone',
+      lines: [
+        hit.forecast.method || 'Forward-advection',
+        timestamp(hit.forecast.endpoint_time_iso),
+        formatKm(hit.forecast.uncertainty_km) ? `Uncertainty ${formatKm(hit.forecast.uncertainty_km)}` : null,
+        hit.forecast.ensemble?.length ? `${hit.forecast.ensemble.length}-member ensemble` : null,
       ].filter(Boolean),
     }
   }
